@@ -1,6 +1,10 @@
 # LearningFromHumans
 Git Repo for CMPUT 656: Interactive Machine Learning
 
+### Installation
+pip3 install --upgrade pip
+pip3 install gym
+pip3 install gym[Atari]
 
-Follow this to install Gym on windows: https://github.com/openai/gym/issues/1726 
+
 
