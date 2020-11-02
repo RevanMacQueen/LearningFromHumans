@@ -1,0 +1,11 @@
+# Pycharm
+.idea/
+
+__pycache__/
+
+# Pip
+*.egg-info/
+
+# Virtualenv
+venv/
+

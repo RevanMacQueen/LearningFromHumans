@@ -1,0 +1,9 @@
+atari-py==0.2.6
+cloudpickle==1.6.0
+cmake==3.18.2.post1
+future==0.18.2
+gym==0.17.3
+numpy==1.19.3
+pyglet==1.5.0
+scipy==1.5.3
+six==1.15.0
