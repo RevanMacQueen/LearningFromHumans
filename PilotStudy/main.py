@@ -34,7 +34,7 @@ def key_release(key, mod):
     if human_agent_action == a:
         human_agent_action = 0
 
-def rollout(env, replay):
+def rollout(env):
     global human_agent_action, human_wants_restart, human_sets_pause
     human_wants_restart = False
     next_obs = env.reset()
@@ -57,12 +57,13 @@ def rollout(env, replay):
         if r != 0:
             print("reward %0.3f" % r)
         total_reward += r
-        window_still_open = env.render()
+        window_still_open = env.env.unwrapped.render()
 
         if not window_still_open: return False
 
         if env.env_done:
-            replay.add_episode(env.trajectory)
+            env.save_trajectory()
+            # replay.add_episode(env.trajectory)
             break
 
         if human_wants_restart: break
@@ -104,12 +105,13 @@ if __name__ == "__main__":
 
     # Initialized replay buffer. Not quite like OpenAI, seems to operate at
     # another 'granularity'; that of episodes, in addition to transitions?
-    replay_memory = ExperienceReplay(
-        capacity=params.params["replay"]["size"],
-        init_cap=params.params["replay"]["initial"],
-        frame_stack=params.params["env"]["frame_stack"],
-        gamma=params.params["train"]["gamma"], tag="train",
-        debug_dir=os.path.join(params.params["log"]["dir"], "learner_replay"))
+
+    # replay_memory = ExperienceReplay(
+    #     capacity=params.params["replay"]["size"],
+    #     init_cap=params.params["replay"]["initial"],
+    #     frame_stack=params.params["env"]["frame_stack"],
+    #     gamma=params.params["train"]["gamma"], tag="train",
+    #     debug_dir=os.path.join(params.params["log"]["dir"], "learner_replay"))
 
     ACTIONS = env.action_space.n
     SKIP_CONTROL = 0    # Use previous control decision SKIP_CONTROL times, that's how you
@@ -125,5 +127,5 @@ if __name__ == "__main__":
     print("No keys pressed is taking action 0")
 
     while 1:
-        window_still_open = rollout(wrapper_env, replay_memory)
+        window_still_open = rollout(wrapper_env)
         if not window_still_open: break
