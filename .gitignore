@@ -9,3 +9,6 @@ __pycache__/
 # Virtualenv
 venv/
 
+# Logs
+PilotStudy/_breakout*
+

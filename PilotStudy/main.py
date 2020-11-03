@@ -7,8 +7,8 @@ from pathlib import Path
 
 # from lfh.envs.atari import make_env
 from lfh.envs.wrapper import Environment
-from lfh.replay.base import ExperienceReplay
-from lfh.replay.transition import Transition
+# from lfh.replay.base import ExperienceReplay
+# from lfh.replay.transition import Transition
 from lfh.utils.config import Configurations
 from definitions import ROOT_DIR
 
@@ -38,6 +38,7 @@ def rollout(env):
     global human_agent_action, human_wants_restart, human_sets_pause
     human_wants_restart = False
     next_obs = env.reset()
+    env.reset_episode()
     skip = 0
     total_reward = 0
     total_timesteps = 0

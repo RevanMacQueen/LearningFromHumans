@@ -7,7 +7,6 @@ from lfh.replay.transition import Transition
 from lfh.utils.structures import SMAQueue
 from lfh.utils.io import save_trajectory
 
-# CURRENTLY NOT IN USE
 
 class Environment:
     """Used as the `env` input to `replay.experience.ExperienceSource`."""
@@ -82,7 +81,7 @@ class Environment:
     def finish_episode(self, save=False, gif=False, epsilon=None):
         """Book-keeping and debugging after finishing a life.
 
-        Huge note: provides the statistics for the summaries that get used
+        Huge notea: provides the statistics for the summaries that get used
         later for tracking episodes and lives. There are two summary
         dictionaries, one for (lives and clipped rewards) and the other for
         (true episodes and true reward).
@@ -91,7 +90,7 @@ class Environment:
         lives, this will get called after each life. It was originally designed
         for Pong, which is why the naming `episode` is still here. We report
         steps per second for throughput, and these are taken as scalar averages
-        across each life. Actually, they are saved under 'frames_per_second'
+        across each life. Actually, they are sved under 'frames_per_second'
         but it is really environment steps per second!
         """
         assert self.env_done
