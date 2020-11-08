@@ -77,7 +77,8 @@ def rollout(env, practise =False):
         #if r != 0:
         #    print("reward %0.3f" % r)
         total_reward += r
-        window_still_open = env.env.unwrapped.render()
+        # window_still_open = env.env.unwrapped.render()
+        window_still_open = env.env.window_open
 
         if not window_still_open: return False
 
@@ -88,7 +89,7 @@ def rollout(env, practise =False):
             #  env.reset()
             env.finish_episode(save=not practise)
             num_lives -= 1
-            if num_lives ==0:
+            if num_lives == 0:
                 break
                 env.close()
             #
@@ -99,11 +100,12 @@ def rollout(env, practise =False):
         if human_wants_restart: break
 
         while human_sets_pause:
-            env.render()
+            # env.render()
+            window_still_open = env.env.unwrapped.render()
             time.sleep(0.1)
 
         
-        time.sleep(0.08)
+        time.sleep(0.06)
 
     print("timesteps %i reward %0.2f" % (total_timesteps, total_reward))
 
@@ -133,7 +135,10 @@ if __name__ == "__main__":
 
 
     print(params.params['env'])
-    wrapper_env = Environment(params.params['env'], params.params['log'], logger=logger, seed=params.exp_config['seed'])
+    wrapper_env = Environment(params.params['env'], params.params['log'],
+                              logger=logger,
+                              seed=params.exp_config['seed'],
+                              render_every_frame=True)
     env = wrapper_env.env
     params.params["env"]["num_actions"] = env.action_space.n
     params.params["env"]["action_meanings"] = \
