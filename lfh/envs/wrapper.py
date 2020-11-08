@@ -31,6 +31,7 @@ class Environment:
             frame_stack=env_params["frame_stack"],
             )
 
+
         # Zero for games w/o lives (e.g. Pong). But can't guarantee episodes
         # use exaxctly this many.  https://github.com/CannyLab/dqn/issues/44
         self.lives_per_ep = (self.env.unwrapped).ale.lives()
@@ -115,24 +116,25 @@ class Environment:
             self.save_trajectory_animation()
 
         # For 'true' episode stats, i.e., assuming 0 lives.
-        true_results = load_results(self.log_params['dir'])
-        true_rewards = true_results['r'].tolist()
-        true_steps   = true_results['l'].tolist()
-        if len(true_rewards) > self._episode_idx:
-            # Let's 1-index the episode idx, like the life idx.
-            self._episode_idx += 1
-            self.summary_true[self._episode_idx] = {
-                "raw_rew": true_rewards[-1],
-                "steps": true_steps[-1],
-                "life_idx_begin": self._start_life_idx,
-                "life_idx_end": self._life_idx,
-                "life_num": self._life_idx - self._start_life_idx + 1,
-            }
-            assert self._episode_idx == len(true_rewards)
-            _info = "Episode {0} (1-idx) done, {1} steps, {2:.2f} raw reward".format(
-                self._episode_idx, true_steps[-1], true_rewards[-1])
-            self._start_life_idx = self._life_idx + 1
-            self.logger.debug(_info)
+        # NOTE: REVAN: I commented this out and stuff works
+        # true_results = load_results(self.log_params['dir'])
+        # true_rewards = true_results['r'].tolist()
+        # true_steps   = true_results['l'].tolist()
+        # if len(true_rewards) > self._episode_idx:
+        #     # Let's 1-index the episode idx, like the life idx.
+        #     self._episode_idx += 1
+        #     self.summary_true[self._episode_idx] = {
+        #         "raw_rew": true_rewards[-1],
+        #         "steps": true_steps[-1],
+        #         "life_idx_begin": self._start_life_idx,
+        #         "life_idx_end": self._life_idx,
+        #         "life_num": self._life_idx - self._start_life_idx + 1,
+        #     }
+        #     assert self._episode_idx == len(true_rewards)
+        #     _info = "Episode {0} (1-idx) done, {1} steps, {2:.2f} raw reward".format(
+        #         self._episode_idx, true_steps[-1], true_rewards[-1])
+        #     self._start_life_idx = self._life_idx + 1
+        #     self.logger.debug(_info)
 
         # Again, reset the LIFESPAN, despite the naming here ...
         self.reset_episode()
@@ -154,6 +156,7 @@ class Environment:
         loss of one life, and not the actual episode termination. But we are
         going to save like that anyway so it's OK.
         """
+        
         _current_obs, _current_rew, _done, _info = self.env.step(_action)
         self.total_steps += 1
         transition = Transition(state=None, next_state=_current_obs[0],
@@ -191,6 +194,9 @@ class Environment:
         self.logger.debug(
             "Life {0} trajectory GIF animation has been saved.".format(
                 self._life_idx))
+
+    def close(self):
+        self.env.close()
 
     def get_num_lives(self):
         return self._life_idx
