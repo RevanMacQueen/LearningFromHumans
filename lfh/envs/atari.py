@@ -96,13 +96,19 @@ class EpisodicLifeEnv(gym.Wrapper):
 
 
 class MaxAndSkipEnv(gym.Wrapper):
-    def __init__(self, env, skip=4):
+    def __init__(self, env, skip=4, render_on_action=False):
         """Return only every `skip`-th frame"""
         gym.Wrapper.__init__(self, env)
         # most recent raw observations (for max pooling across time steps)
         self._obs_buffer = np.zeros((2,) + env.observation_space.shape,
                                     dtype=np.uint8)
         self._skip = skip
+        self._render = render_on_action
+        self._window_open = False
+
+    @property
+    def window_open(self):
+        return self._window_open
 
     def step(self, action):
         """Repeat action, sum reward, and max over last observations."""
@@ -116,6 +122,10 @@ class MaxAndSkipEnv(gym.Wrapper):
             if i == self._skip - 1:
                 self._obs_buffer[1] = obs
             total_reward += reward
+
+            if self._render:
+                self._window_open = self.env.render()
+
             if done:
                 break
         # Note that the observation on the done=True frame
@@ -125,6 +135,8 @@ class MaxAndSkipEnv(gym.Wrapper):
         return max_frame, total_reward, done, info
 
     def reset(self, **kwargs):
+        if self._render:
+            self._window_open = self.env.render()
         return self.env.reset(**kwargs)
 
 
@@ -241,12 +253,12 @@ class ImageToPyTorch(gym.ObservationWrapper):
                 observation[1].transpose(3, 0, 1, 2)]
 
 
-def make_atari(env_id, skip_frame=4):
+def make_atari(env_id, skip_frame=4, render_every_frame=False):
 
     env = gym.make(env_id)
     assert 'NoFrameskip' in env.spec.id
     env = NoopResetEnv(env, noop_max=30)
-    env = MaxAndSkipEnv(env, skip=skip_frame)
+    env = MaxAndSkipEnv(env, skip=skip_frame, render_on_action=render_every_frame)
     return env
 
 
@@ -267,8 +279,8 @@ def wrap_deepmind(env, episode_life=True, clip_rewards=True, frame_stack=None):
 
 
 # def make_env(env_name, episode_life, skip_frame, clip_rewards, frame_stack, logdir):
-def make_env(env_name, episode_life, skip_frame, clip_rewards, frame_stack):
-    _env = make_atari(env_name, skip_frame)
+def make_env(env_name, episode_life, skip_frame, clip_rewards, frame_stack, render_every_frame=False):
+    _env = make_atari(env_name, skip_frame, render_every_frame=render_every_frame)
 
     # Added by Daniel ----------------------------------------------------------
     # _env = Monitor(_env, logdir, allow_early_resets=True)

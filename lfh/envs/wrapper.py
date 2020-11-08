@@ -12,7 +12,8 @@ from lfh.utils.io import save_trajectory
 class Environment:
     """Used as the `env` input to `replay.experience.ExperienceSource`."""
 
-    def __init__(self, env_params, log_params, logger, seed, train=True):
+    def __init__(self, env_params, log_params, logger, seed,
+                 train=True, render_every_frame=False):
         self.train = train
         self.seed = seed
         if train:
@@ -29,6 +30,7 @@ class Environment:
             clip_rewards=(env_params["clip_rewards"] and train),
             skip_frame=env_params["frame_skip"],
             frame_stack=env_params["frame_stack"],
+            render_every_frame=render_every_frame
             )
 
 
