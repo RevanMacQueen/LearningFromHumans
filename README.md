@@ -27,11 +27,11 @@ pip3 install -e .
 
 Thanks for taking the time to be part of our pilot study! You will be helping a reinforcement learning agent learn how to play the Atari game Breakout. If you're unfamiliar with this game, please check out this [video](https://www.youtube.com/watch?v=V1eYniJ0Rnk). You will play Breakout and the agent will learn how to play based off of your demonstrations. After installing (see above) follow these steps to contribute to the pilot study. (Please read all steps first) 
 
-1. Change directory into the PilotStudy folder.
+### 1. Change directory into the PilotStudy folder.
 
 ```cd PilotStudy```
 
-2. Run the PilotStudy File.
+### 2. Run the PilotStudy File.
 
 To begin the pilot study, once in the PilotStudy directory run the following command: 
 ```
@@ -39,7 +39,7 @@ python3 main.py
 ```
 Here you will be given on-screen instuctions how to complete the pilot study. The UI is somewhat finicky, you'll receive prompts via the terminal and to play Breakout a separate window will appear. You may need to click on the window before it will accept keyboard input. The PilotStudy file will prompt you to keep play more games, or to exit. If you exit, you have the option to run it again to contribute more demonstrations :)  
 
-3. Zip up demonstrations.
+### 3. Zip up demonstrations.
 
 Once you're done giving demonstrations, run the folling command to zip up all your demonstrations:
 ```
@@ -48,7 +48,7 @@ python3 zip.py
 
 This will create a new file demonstrations.zip in the PilotStudy directory
 
-4. Send us the demonstrations.
+### 4. Send us the demonstrations.
 
 Upload your demonstrations.zip to this [google drive](https://drive.google.com/drive/folders/1ZvrUFTViP6u3XR2V1wuE_JLINQ7cqYlY?usp=sharing)
 
