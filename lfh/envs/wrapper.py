@@ -1,4 +1,6 @@
-import time
+import time, os
+from os import path
+from pathlib import Path
 
 from lfh.envs.atari import make_env
 from lfh.utils.io import load_results
@@ -57,12 +59,15 @@ class Environment:
         self.start_time = None
         self.speed = None
         self.rewards_queue = SMAQueue(env_params["avg_window"])
+        self.game_number = 0 # game number for the player
         self.reset_episode()
+      
 
     def reset(self):
         obs = self.env.reset()
         self.start_time = time.time()
         return obs
+        
 
     def reset_episode(self):
         """Reset an episode and refresh memory.
@@ -140,6 +145,7 @@ class Environment:
 
         # Again, reset the LIFESPAN, despite the naming here ...
         self.reset_episode()
+        
 
     def step(self, _action):
         """Call usual gym step method.
@@ -172,8 +178,12 @@ class Environment:
             self._colored_memory.add_transition(colored_transition)
 
     def save_trajectory(self):
+
+
+        game_save_dir = Path(self.log_params["dir_episodes"])/str(self.game_number)
+
         save_trajectory(
-            dir_episodes=self.log_params["dir_episodes"],
+            dir_episodes = game_save_dir,
             episode=self._life_idx,
             trajectory=self._memory,
             flag=self.flag)
@@ -196,6 +206,9 @@ class Environment:
         self.logger.debug(
             "Life {0} trajectory GIF animation has been saved.".format(
                 self._life_idx))
+
+    def increment_game_number(self):
+        self.game_number += 1
 
     def close(self):
         self.env.close()

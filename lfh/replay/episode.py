@@ -3,11 +3,11 @@ from lfh.replay.transition import Transition
 from lfh.utils.train import compute_discounted_sum
 # Causing issues with tkinter if computer doesn't have it
 # (It's not pip-installable)
-#try:
-#    import matplotlib.pyplot as plt
-#    import matplotlib.animation as animation
-#except ImportError:
-#    print("Couldn't install tkinter -- not really important")
+try:
+   import matplotlib.pyplot as plt
+   import matplotlib.animation as animation
+except ImportError:
+   print("Couldn't install tkinter -- not really important")
 import os
 
 

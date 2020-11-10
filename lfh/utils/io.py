@@ -3,6 +3,7 @@ import json
 import pickle
 # import torch
 from glob import glob
+from pathlib import Path
 
 import os.path as osp
 
@@ -67,11 +68,15 @@ def save_trajectory(dir_episodes, episode, trajectory, flag="play"):
 
     Parameters
     ----------
-    dir_episodes: self.log_params["dir_episodes"]
+    dir_episodes: parent directory to save episode (Path object)
     episode: integer, representing episode index (edit: lifespan)
     trajectory: a `dqn.replay.episode.Episode` object
     flag: either 'train' or 'test', I think, not 'play'
     """
+
+    if not osp.isdir(dir_episodes):
+        os.makedirs(dir_episodes)
+
     lifespan = "episode_{}_{}.pkl".format(flag, str(episode).zfill(7))
     with open(os.path.join(dir_episodes, lifespan), 'wb') as _trajectory_file:
         pickle.dump(trajectory, _trajectory_file)
@@ -80,6 +85,7 @@ def save_trajectory(dir_episodes, episode, trajectory, flag="play"):
 def read_trajectory(dir_episodes, episode, flag="train"):
     lifespan = "episode_{}_{}.pkl".format(flag, str(episode).zfill(7))
     _episode_path = os.path.join(dir_episodes, lifespan)
+    print(_episode_path)
     if os.path.exists(_episode_path):
         with open(_episode_path, 'rb') as f:
             _trajectory = pickle.load(f)

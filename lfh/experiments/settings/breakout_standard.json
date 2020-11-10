@@ -8,6 +8,7 @@
   },
   "log": {
     "log_level": "debug",
-    "snapshot_per_step": 50000
+    "snapshot_per_step": 50000,
+    "root" : "demonstrations/"
   }
 }

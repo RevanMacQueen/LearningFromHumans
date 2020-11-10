@@ -56,8 +56,8 @@ class Configurations:
         last = "{}{}_{}_s{}".format(self.params["exp"], note, date,
                                     self.params["seed"])
 
-
-        self.params["log"]["dir"] = Path(last)
+        
+        self.params["log"]["dir"] = Path( self.params["log"]["root"])/last
         # __import__('pdb').set_trace()
         create_output_dir(params=self.params)
 
