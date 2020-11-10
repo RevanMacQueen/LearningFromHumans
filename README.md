@@ -7,6 +7,12 @@ This requires [Python 3](https://www.python.org/downloads/) to run.
 We suggest you create a [Virtual Environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/)
 to run this repo.
 
+First clone this repository.
+```
+git clone https://github.com/RevanMacQueen/LearningFromHumans
+cd LearningFromHumans
+```
+
 To install dependencies (with an activated virtual environment):
 ```
 pip3 install --upgrade pip
@@ -17,13 +23,43 @@ Now install the `lfh` directory
 pip3 install -e .
 ```
 
-##Acknowledgements
-The majority of this code is from [Daniel Seita](https://people.eecs.berkeley.edu/~seita/) and his implementation
-of his paper [ZPD Teaching Strategies for Deep Reinforcement Learning from Demonstrations
-](https://arxiv.org/abs/1910.12154).
+## Pilot Study Instructions
+
+Thanks for taking the time to be part of our pilot study! You will be helping a reinforcement learning agent learn how to play the Atari game Breakout. If you're unfamiliar with this game, please check out this [video](https://www.youtube.com/watch?v=V1eYniJ0Rnk). You will play Breakout and the agent will learn how to play based off of your demonstrations. After installing (see above) follow these steps to contribute to the pilot study. (Please read all steps first) 
+
+1. Change directory into the PilotStudy folder.
+
+```cd PilotStudy```
+
+2. Run the PilotStudy File.
+
+To begin the pilot study, once in the PilotStudy directory run the following command: 
+```
+python3 main.py
+```
+Here you will be given on-screen instuctions how to complete the pilot study. The UI is somewhat finicky, you'll receive prompts via the terminal and to play Breakout a separate window will appear. You may need to click on the window before it will accept keyboard input. The PilotStudy file will prompt you to keep play more games, or to exit. If you exit, you have the option to run it again to contribute more demonstrations :)  
+
+3. Zip up demonstrations.
+
+Once you're done giving demonstrations, run the folling command to zip up all your demonstrations:
+```
+python3 zip.py
+```
+
+This will create a new file demonstrations.zip in the PilotStudy directory
+
+4. Send us the demonstrations.
+
+Upload your demonstrations.zip to this [google drive](https://drive.google.com/drive/folders/1ZvrUFTViP6u3XR2V1wuE_JLINQ7cqYlY?usp=sharing)
+
 
 ## Issues
 
 ### Installing atari-py on Windows 10
 There are some problems installing atari-py on Windows 10. To resolve these problem, first follow the instructions [here](https://github.com/openai/gym/issues/1726). If that doen't work try the steps [here](https://stackoverflow.com/questions/63080326/could-not-find-module-atari-py-ale-interface-ale-c-dll-or-one-of-its-dependenc/64104353#64104353). If you have any questions, let us know and we'll try to figure it out :)
+
+## Acknowledgements
+The majority of this code is from [Daniel Seita](https://people.eecs.berkeley.edu/~seita/) and his implementation
+of his paper [ZPD Teaching Strategies for Deep Reinforcement Learning from Demonstrations
+](https://arxiv.org/abs/1910.12154).
 
