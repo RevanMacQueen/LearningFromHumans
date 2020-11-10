@@ -33,7 +33,7 @@ Thanks for taking the time to be part of our pilot study! You will be helping a 
 
 ### 2. Run the PilotStudy File.
 
-To begin the pilot study, once in the PilotStudy directory run the following command: 
+Once in the PilotStudy directory, run the following command to begin the pilot study: 
 ```
 python3 main.py
 ```
