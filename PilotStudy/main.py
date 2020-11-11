@@ -184,7 +184,7 @@ if __name__ == "__main__":
         while not entered:
 
             rate = input("How well do you think you played on that game? [Enter a number 1-5] ")
-            if rate >= 1 and <= 5:
+            if rate >= 1 and rate <= 5:
                 break
             else:
                 print("Invalid rating, please enter a rating from 1-5")
