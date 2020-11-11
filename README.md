@@ -92,7 +92,7 @@ Upload your demonstrations.zip to this [google drive](https://drive.google.com/d
 ## Issues
 
 ### Installing atari-py on Windows 10
-There are some problems installing atari-py on Windows 10. To resolve these problem, first follow the instructions [here](https://github.com/openai/gym/issues/1726). If that doen't work try the steps [here](https://stackoverflow.com/questions/63080326/could-not-find-module-atari-py-ale-interface-ale-c-dll-or-one-of-its-dependenc/64104353#64104353). If you have any questions, let us know and we'll try to figure it out :)
+There are some problems installing atari-py on Windows 10. Make sure you set up a virtual environment and install dependencies from the requirements_windows.txt. If things still aren't working let us know and we'll try to figure things out.
 
 ## Acknowledgements
 The majority of this code is from [Daniel Seita](https://people.eecs.berkeley.edu/~seita/) and his implementation
