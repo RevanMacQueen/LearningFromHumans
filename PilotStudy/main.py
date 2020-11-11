@@ -24,12 +24,7 @@ start_episode = True
 def key_press(key, mod):
     global human_agent_action, human_wants_restart, human_sets_pause, start_episode
 
-    # print("ere")
-    # if start_episode:
-    #     print("hereh")
-    #     start_episode = False
     a = int(key)
-    if key==0xff0d: human_wants_restart = True
     if a==112: human_sets_pause = not human_sets_pause
 
     if a == ord('a'):
@@ -94,7 +89,7 @@ def rollout(env):
             time.sleep(0.1)
 
         
-        time.sleep(0.06)
+        time.sleep(0.08)
 
     env.increment_game_number()
     human_sets_pause = True
