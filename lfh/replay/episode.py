@@ -7,7 +7,8 @@ try:
    import matplotlib.pyplot as plt
    import matplotlib.animation as animation
 except ImportError:
-   print("Couldn't install tkinter -- not really important")
+    pass
+   #print("Couldn't install tkinter -- not really important")
 import os
 
 

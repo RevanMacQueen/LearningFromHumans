@@ -85,7 +85,6 @@ def save_trajectory(dir_episodes, episode, trajectory, flag="play"):
 def read_trajectory(dir_episodes, episode, flag="train"):
     lifespan = "episode_{}_{}.pkl".format(flag, str(episode).zfill(7))
     _episode_path = os.path.join(dir_episodes, lifespan)
-    print(_episode_path)
     if os.path.exists(_episode_path):
         with open(_episode_path, 'rb') as f:
             _trajectory = pickle.load(f)

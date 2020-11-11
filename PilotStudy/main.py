@@ -51,8 +51,6 @@ def key_release(key, mod):
         return
 
 def rollout(env):
-
-
     env.env.render()
     env.env.unwrapped.viewer.window.on_key_press = key_press
     env.env.unwrapped.viewer.window.on_key_release = key_release
@@ -99,6 +97,7 @@ def rollout(env):
         time.sleep(0.06)
 
     env.increment_game_number()
+    human_sets_pause = True
     #print("timesteps %i reward %0.2f" % (total_timesteps, total_reward))
 
 
@@ -109,6 +108,30 @@ if __name__ == "__main__":
     parser.add_argument("--exp-name", type=str, default='settings',
                         help='directory from which to load experiment settings')
     parser.add_argument("--profile", action='store_true', help='whether to run the profiler')
+
+
+
+    while True:
+        input("Hello! Welcome to the ZPD from human demonstrations pilot study! [Press Enter]\n")
+        input("You will be playing Atari Breakout to help teach a reinforcement learning agent how to play. [Press Enter]\n")
+        input("You can play as many games as you would like. We ask you to play at least 5 games, but the more games you play the better our agent will learn. [Press Enter]\n")
+        input("After each game you will be asked via the terminal to rate how well you played and whether you would like to play again. We will use the rating information to decide in which order to give demonstrations to our RL agent [Press Enter]\n")
+
+        print("The goal of the game is to break all the blocks at the top of the display, in order to get as many points as possible.")
+        input("You control a paddle at the bottom of the screen, the controls are: [Press Enter]\n")
+        print("\t 'a' to move left")
+        print("\t 'd' to move right\n")
+
+        input("You can additionally press 'p' to pause the game. [Press Enter]\n")
+        input("The game will start in pause mode, press 'p' to start the game once the window is open. [Press Enter]\n")
+        input("The window may initally appear small, once the game is paused you can adjust the size of the window. [Press Enter]\n")
+
+        input("Once a new game starts, you may need to click on the window to allow it to read your key presses. [Press Enter]\n")
+     
+        a = input("Enter 'n' to advance to the game. Enter any other key to hear these instructions again. [Press key then press enter]\n>>>")
+        if a == 'n':
+            break 
+    
 
 
     params = parser.parse_args()
@@ -123,8 +146,6 @@ if __name__ == "__main__":
     #             clip_rewards=params.params["env"]["clip_rewards"],
     #             frame_stack=params.params["env"]["frame_stack"],
     #             )
-
-    print(params.params["log"]["dir_episodes"])
     
     wrapper_env = Environment(params.params['env'], params.params['log'],
                               logger=logger,
@@ -147,29 +168,6 @@ if __name__ == "__main__":
         gamma=params.params["train"]["gamma"], tag="train",
         debug_dir=os.path.join(params.params["log"]["dir"], "learner_replay"))
 
-    while True:
-        input("Hello :) Welcome to the ZPD from human demonstrations pilot study! [Press Enter]\n")
-        input("You will be playing Atari Breakout to help teach a reinforcement learning based agent how to play [Press Enter]\n")
-        input("You can play as many games as you would like. We ask you to play at least 5 games, but the more games you play the better our agent will learn [Press Enter]\n")
-        
-        input("After each game you will be asked via the terminal to rate how well you played and whether you would like to play again [Press Enter]\n")
-
-        print("The goal of the game is to break all the blocks at the top of the display, in order to get as many points as possible.")
-        input("You control a paddle at the bottom of the screen, the controls are: [Press Enter]\n")
-        print("\t 'a' to move left")
-        print("\t 'd' to move right\n")
-
-        input("You can additionally press 'p' to pause the game [Press Enter]\n")
-
-        input("The game will start in pause mode, press 'p' to start the game once the window is open [Press Enter]\n")
-
-        input("Once a new game starts, you may need to click on the window to allow it to read your key presses [Press Enter]\n")
-     
-
-        a = input("Enter 'n' to advance to the game. Enter any other key to hear these instructions again. [Press key then press enter]\n")
-        if a == 'n':
-            break 
-    
     
     ACTIONS = env.action_space.n
     SKIP_CONTROL = 0    # Use previous control decision SKIP_CONTROL times, that's how you
@@ -183,11 +181,17 @@ if __name__ == "__main__":
         entered = False
         while not entered:
 
-            rate = input("How well do you think you played on that game? [Enter a number 1-5] ")
-            if rate >= 1 and rate <= 5:
-                break
-            else:
-                print("Invalid rating, please enter a rating from 1-5")
+            rate = input("How well do you think you played on that game? [Enter a number 1-5] \n>>>")
+            try:
+                rate = int(rate)
+                if rate >= 1 and rate <= 5:
+                    break
+                else:
+                    print("Invalid rating, please enter a rating from 1-5\n")
+            except:
+                print("Not a number\n")
+                
+
 
         
         rate_file = Path(wrapper_env.log_params["dir_episodes"])/str(wrapper_env.game_number - 1) / "rate.txt"
@@ -196,7 +200,7 @@ if __name__ == "__main__":
             f.write(str(rate))
 
 
-        contin = input("Do you want to play again? [Press 'y' and enter for yes, 'n' and enter for no] ")
+        contin = input("Do you want to play again? [Press 'y' and enter for yes, 'n' and enter for no]\n>>> ")
 
         if contin == 'n':
             break
