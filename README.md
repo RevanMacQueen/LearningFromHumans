@@ -2,7 +2,9 @@
 Git Repo for CMPUT 656: Interactive Machine Learning pilot study. we are extending the work previously done by Seita et al. (https://arxiv.org/abs/1910.12154) to learn breakout from a curriculum of human demonstrations.
 
 ## Installation
-This requires [Python 3](https://www.python.org/downloads/) to run.
+
+### Linux/MacOS
+Running the code in this repo requires [Python 3](https://www.python.org/downloads/) to run. We recommend using python 3.8.
 
 We suggest you create a [Virtual Environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/)
 to run this repo.
@@ -23,6 +25,29 @@ Now install the `lfh` directory
 pip3 install -e .
 ```
 
+### Windows
+Running the code in this repo requires [Python 3](https://www.python.org/downloads/) to run. We recommend using python 3.8.
+
+We suggest you create a [Virtual Environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/)
+to run this repo. Note: activating a virtual envrionment on windows might return an error, this is a problem with execution policy settings. To fix it, try executing `Set-ExecutionPolicy Unrestricted -Scope Process` before activating the virtual environment. For more info see [here](https://stackoverflow.com/questions/18713086/virtualenv-wont-activate-on-windows/30413393)
+
+First clone this repository.
+```
+git clone https://github.com/RevanMacQueen/LearningFromHumans.git
+cd LearningFromHumans
+```
+
+To install dependencies (with an activated virtual environment):
+```
+pip install --upgrade pip
+pip install -r requirements_windows.txt
+pip install -f https://github.com/Kojoley/atari-py/releases atari_py 
+```
+Now install the `lfh` directory
+```
+pip install -e .
+```
+
 ## Pilot Study Instructions
 
 Thanks for taking the time to be part of our pilot study! You will be helping a reinforcement learning agent learn how to play the Atari game Breakout. If you're unfamiliar with this game, please check out this [video](https://www.youtube.com/watch?v=V1eYniJ0Rnk). You will play Breakout and the agent will learn how to play based off of your demonstrations. After installing (see above) follow these steps to contribute to the pilot study. (Please read all steps first) 
@@ -33,18 +58,29 @@ Thanks for taking the time to be part of our pilot study! You will be helping a 
 
 ### 2. Run the PilotStudy File.
 
-Once in the PilotStudy directory, run the following command to begin the pilot study: 
+Once in the PilotStudy directory, run the following command to begin the pilot study if you're running MacOS or Linux: 
 ```
 python3 main.py
 ```
+
+or if you're running Windows:
+```
+python main.py
+```
+
 Here you will be given on-screen instuctions how to complete the pilot study. The UI is somewhat finicky, you'll receive prompts via the terminal and to play Breakout a separate window will appear. You may need to click on the window before it will accept keyboard input. The PilotStudy file will prompt you to keep play more games, or to exit. If you exit, you have the option to run it again to contribute more demonstrations :)  
 
 ### 3. Zip up demonstrations.
 
-Once you're done giving demonstrations, run the folling command to zip up all your demonstrations:
+Once you're done giving demonstrations, run the following command to zip up all your demonstrations:
 ```
-python3 zip.py
+python3 zip.py # MacOS or Linux
 ```
+
+```
+python main.py # Windows
+```
+
 
 This will create a new file demonstrations.zip in the PilotStudy directory
 
@@ -56,7 +92,7 @@ Upload your demonstrations.zip to this [google drive](https://drive.google.com/d
 ## Issues
 
 ### Installing atari-py on Windows 10
-There are some problems installing atari-py on Windows 10. To resolve these problem, first follow the instructions [here](https://github.com/openai/gym/issues/1726). If that doen't work try the steps [here](https://stackoverflow.com/questions/63080326/could-not-find-module-atari-py-ale-interface-ale-c-dll-or-one-of-its-dependenc/64104353#64104353). If you have any questions, let us know and we'll try to figure it out :)
+There are some problems installing atari-py on Windows 10. Make sure you set up a virtual environment and install dependencies from the requirements_windows.txt. If things still aren't working let us know and we'll try to figure things out.
 
 ## Acknowledgements
 The majority of this code is from [Daniel Seita](https://people.eecs.berkeley.edu/~seita/) and his implementation
