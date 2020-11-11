@@ -4,7 +4,7 @@ Git Repo for CMPUT 656: Interactive Machine Learning pilot study. we are extendi
 ## Installation
 
 ### Linux/MacOS
-This requires [Python 3](https://www.python.org/downloads/) to run. We recommend using python 3.8.
+Running the code in this repo requires [Python 3](https://www.python.org/downloads/) to run. We recommend using python 3.8.
 
 We suggest you create a [Virtual Environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/)
 to run this repo.
@@ -26,7 +26,7 @@ pip3 install -e .
 ```
 
 ### Windows
-This requires [Python 3](https://www.python.org/downloads/) to run.
+Running the code in this repo requires [Python 3](https://www.python.org/downloads/) to run. We recommend using python 3.8.
 
 We suggest you create a [Virtual Environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/)
 to run this repo. Note: activating a virtual envrionment on windows might return an error, this is a problem with execution policy settings. To fix it, try executing `Set-ExecutionPolicy Unrestricted -Scope Process` before activating the virtual environment. For more info see [here](https://stackoverflow.com/questions/18713086/virtualenv-wont-activate-on-windows/30413393)
