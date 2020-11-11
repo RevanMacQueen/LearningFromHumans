@@ -58,18 +58,29 @@ Thanks for taking the time to be part of our pilot study! You will be helping a 
 
 ### 2. Run the PilotStudy File.
 
-Once in the PilotStudy directory, run the following command to begin the pilot study: 
+Once in the PilotStudy directory, run the following command to begin the pilot study if you're running MacOS or Linux: 
 ```
 python3 main.py
 ```
+
+or if you're running Windows:
+```
+python main.py
+```
+
 Here you will be given on-screen instuctions how to complete the pilot study. The UI is somewhat finicky, you'll receive prompts via the terminal and to play Breakout a separate window will appear. You may need to click on the window before it will accept keyboard input. The PilotStudy file will prompt you to keep play more games, or to exit. If you exit, you have the option to run it again to contribute more demonstrations :)  
 
 ### 3. Zip up demonstrations.
 
 Once you're done giving demonstrations, run the folling command to zip up all your demonstrations:
 ```
-python3 zip.py
+python3 zip.py # MacOS or Linux
 ```
+
+```
+python main.py # Windows
+```
+
 
 This will create a new file demonstrations.zip in the PilotStudy directory
 
