@@ -9,7 +9,7 @@ to run this repo.
 
 First clone this repository.
 ```
-git clone https://github.com/RevanMacQueen/LearningFromHumans
+git clone https://github.com/RevanMacQueen/LearningFromHumans.git
 cd LearningFromHumans
 ```
 
