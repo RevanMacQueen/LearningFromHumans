@@ -1,5 +1,5 @@
 # LearningFromHumans
-Git Repo for CMPUT 656: Interactive Machine Learning pilot study. we are extending the work previously done by Seita et al. (https://arxiv.org/abs/1910.12154) to learn breakout from a curriculum of human demonstrations.
+Git Repo for CMPUT 656: Interactive Machine Learning pilot study. we are extending the work previously done by Seita et al. (https://arxiv.org/abs/1910.12154) to learn Breakout from a curriculum of human demonstrations.
 
 ## Installation
 
@@ -26,10 +26,10 @@ pip3 install -e .
 ```
 
 ### Windows
-Running the code in this repo requires [Python 3](https://www.python.org/downloads/) to run. We recommend using python 3.8. This WILL NOT work on Python 3.9.
+Running the code in this repo requires [Python 3](https://www.python.org/downloads/) to run. We recommend using python 3.8. This repo WILL NOT work with Python 3.9.
 
 We suggest you create a [Virtual Environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/)
-to run this repo. Note: activating a virtual envrionment on windows might return an error, this is a problem with execution policy settings. To fix it, try executing `Set-ExecutionPolicy Unrestricted -Scope Process` before activating the virtual environment. For more info see [here](https://stackoverflow.com/questions/18713086/virtualenv-wont-activate-on-windows/30413393)
+to run this repo. Note: activating a virtual environment on Windows might return an error, this is a problem with execution policy settings. To fix it, try executing `Set-ExecutionPolicy Unrestricted -Scope Process` before activating the virtual environment. For more info see [here](https://stackoverflow.com/questions/18713086/virtualenv-wont-activate-on-windows/30413393).
 
 First clone this repository.
 ```
@@ -50,13 +50,13 @@ pip install -e .
 
 ## Pilot Study Instructions
 
-Thanks for taking the time to be part of our pilot study! You will be helping a reinforcement learning agent learn how to play the Atari game Breakout. If you're unfamiliar with this game, please check out this [video](https://www.youtube.com/watch?v=V1eYniJ0Rnk). You will play Breakout and the agent will learn how to play based off of your demonstrations. After installing (see above) follow these steps to contribute to the pilot study. (Please read all steps first) 
+Thanks for taking the time to be part of our pilot study! You will be helping a reinforcement learning agent learn how to play the Atari game Breakout. If you're unfamiliar with this game, please check out this [video](https://www.youtube.com/watch?v=V1eYniJ0Rnk). You will play Breakout and the agent will learn how to play based off of your demonstrations. After installing (see above) follow these steps to contribute to the pilot study (please read all steps here before starting).
 
 ### 1. Change directory into the PilotStudy folder.
 
 ```cd PilotStudy```
 
-### 2. Run the PilotStudy File.
+### 2. Run the pilot study.
 
 Once in the PilotStudy directory, run the following command to begin the pilot study if you're running MacOS or Linux: 
 ```
@@ -68,7 +68,7 @@ or if you're running Windows:
 python main.py
 ```
 
-Here you will be given on-screen instuctions how to complete the pilot study. The UI is somewhat finicky, you'll receive prompts via the terminal and to play Breakout a separate window will appear. You may need to click on the window before it will accept keyboard input. The PilotStudy file will prompt you to keep play more games, or to exit. If you exit, you have the option to run it again to contribute more demonstrations :)  
+Here you will be given on-screen instuctions how to complete the pilot study. The UI is somewhat finicky, you'll receive prompts via the terminal and to play Breakout a separate window will appear. You may need to click on the window before it will accept keyboard input. We ask that you play at least 5 games, after which the terminal will prompt you to keep play more games, or to exit. If you exit, you have the option to run `main.py` again to contribute more demonstrations. :)  
 
 ### 3. Zip up demonstrations.
 
@@ -78,15 +78,15 @@ python3 zip.py # MacOS or Linux
 ```
 
 ```
-python main.py # Windows
+python zip.py # Windows
 ```
 
 
-This will create a new file demonstrations.zip in the PilotStudy directory
+This will create a new file demonstrations_TIME.zip in the PilotStudy directory,  where TIME will be replaced with the time the .zip was created. 
 
 ### 4. Send us the demonstrations.
 
-Upload your demonstrations.zip to this [google drive](https://drive.google.com/drive/folders/1ZvrUFTViP6u3XR2V1wuE_JLINQ7cqYlY?usp=sharing)
+Last step, upload your zipped demonstrations to this [google drive](https://drive.google.com/drive/folders/1ZvrUFTViP6u3XR2V1wuE_JLINQ7cqYlY?usp=sharing).
 
 
 ## Issues
