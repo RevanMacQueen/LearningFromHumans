@@ -118,8 +118,8 @@ if __name__ == "__main__":
         input("The better you play, the better our agent will learn (no pressure!) [Press Enter]\n")
         input("After each game you will be asked via the terminal to rate how well you played and whether you would like to play again. We will use the rating information to decide in which order to give demonstrations to our RL agent [Press Enter]\n")
 
-        print("The goal of the game is to break all the blocks at the top of the display, in order to get as many points as possible.")
-        input("You control a paddle at the bottom of the screen, the controls are: [Press Enter]\n")
+        input("The goal of the game is to break all the blocks at the top of the display, in order to get as many points as possible. [Press Enter]\n")
+        print("You control a paddle at the bottom of the screen, the controls are:\n")
         print("\t 'a' to move left")
         print("\t 'd' to move right\n")
 
