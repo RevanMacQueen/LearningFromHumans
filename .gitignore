@@ -15,3 +15,6 @@ demonstrations/
 
 # vs code
 .vscode/
+
+# Other 
+*.zip
