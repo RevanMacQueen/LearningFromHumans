@@ -29,7 +29,7 @@ pip3 install -e .
 This requires [Python 3](https://www.python.org/downloads/) to run.
 
 We suggest you create a [Virtual Environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/)
-to run this repo.
+to run this repo. Note: activiating a virtual envrionment on windows might return an error, this is a problem with execution policy settings. To fix it, try executing `Set-ExecutionPolicy Unrestricted -Scope Process` before activating the virtual environment. For more info see [here](https://stackoverflow.com/questions/18713086/virtualenv-wont-activate-on-windows/30413393)
 
 First clone this repository.
 ```
