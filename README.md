@@ -78,7 +78,7 @@ python3 zip.py # MacOS or Linux
 ```
 
 ```
-python main.py # Windows
+python zip.py # Windows
 ```
 
 
