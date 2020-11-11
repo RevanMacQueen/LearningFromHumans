@@ -2,6 +2,8 @@
 Git Repo for CMPUT 656: Interactive Machine Learning pilot study. we are extending the work previously done by Seita et al. (https://arxiv.org/abs/1910.12154) to learn breakout from a curriculum of human demonstrations.
 
 ## Installation
+
+### Linux/MacOS
 This requires [Python 3](https://www.python.org/downloads/) to run.
 
 We suggest you create a [Virtual Environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/)
@@ -21,6 +23,29 @@ pip3 install -r requirements.txt
 Now install the `lfh` directory
 ```
 pip3 install -e .
+```
+
+### Windows
+This requires [Python 3](https://www.python.org/downloads/) to run.
+
+We suggest you create a [Virtual Environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/)
+to run this repo.
+
+First clone this repository.
+```
+git clone https://github.com/RevanMacQueen/LearningFromHumans.git
+cd LearningFromHumans
+```
+
+To install dependencies (with an activated virtual environment):
+```
+pip install --upgrade pip
+pip install -r requirements_windows.txt
+pip install -f https://github.com/Kojoley/atari-py/releases atari_py 
+```
+Now install the `lfh` directory
+```
+pip install -e .
 ```
 
 ## Pilot Study Instructions
