@@ -4,7 +4,7 @@ Git Repo for CMPUT 656: Interactive Machine Learning pilot study. we are extendi
 ## Installation
 
 ### Linux/MacOS
-This requires [Python 3](https://www.python.org/downloads/) to run.
+This requires [Python 3](https://www.python.org/downloads/) to run. We recommend using python 3.8.
 
 We suggest you create a [Virtual Environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/)
 to run this repo.
