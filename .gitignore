@@ -12,3 +12,6 @@ venv/
 # Run directories
 *_breakout*
 demonstrations/
+
+# vs code
+.vscode/
