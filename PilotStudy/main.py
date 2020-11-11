@@ -51,6 +51,12 @@ def key_release(key, mod):
         return
 
 def rollout(env):
+
+
+    env.env.render()
+    env.env.unwrapped.viewer.window.on_key_press = key_press
+    env.env.unwrapped.viewer.window.on_key_release = key_release
+
     global human_agent_action, human_wants_restart, human_sets_pause, start_episode
     human_wants_restart = False
     next_obs = env.reset()
@@ -134,17 +140,19 @@ if __name__ == "__main__":
     # Initialized replay buffer. Not quite like OpenAI, seems to operate at
     # another 'granularity'; that of episodes, in addition to transitions?
 
-    # replay_memory = ExperienceReplay(
-    #     capacity=params.params["replay"]["size"],
-    #     init_cap=params.params["replay"]["initial"],
-    #     frame_stack=params.params["env"]["frame_stack"],
-    #     gamma=params.params["train"]["gamma"], tag="train",
-    #     debug_dir=os.path.join(params.params["log"]["dir"], "learner_replay"))
+    replay_memory = ExperienceReplay(
+        capacity=params.params["replay"]["size"],
+        init_cap=params.params["replay"]["initial"],
+        frame_stack=params.params["env"]["frame_stack"],
+        gamma=params.params["train"]["gamma"], tag="train",
+        debug_dir=os.path.join(params.params["log"]["dir"], "learner_replay"))
 
     while True:
         input("Hello :) Welcome to the ZPD from human demonstrations pilot study! [Press Enter]\n")
         input("You will be playing Atari Breakout to help teach a reinforcement learning based agent how to play [Press Enter]\n")
-        input("You can play as many games as you would like. After each game you will be asked via the terminal whether you would like to play again [Press Enter]\n")
+        input("You can play as many games as you would like. We ask you to play at least 5 games, but the more games you play the better our agent will learn [Press Enter]\n")
+        
+        input("After each game you will be asked via the terminal to rate how well you played and whether you would like to play again [Press Enter]\n")
 
         print("The goal of the game is to break all the blocks at the top of the display, in order to get as many points as possible.")
         input("You control a paddle at the bottom of the screen, the controls are: [Press Enter]\n")
@@ -153,35 +161,42 @@ if __name__ == "__main__":
 
         input("You can additionally press 'p' to pause the game [Press Enter]\n")
 
-        a = input("Enter'n' to advance to the game. Enter any other key to hear these instructions again. [Press key then press enter]\n")
+        input("The game will start in pause mode, press 'p' to start the game once the window is open [Press Enter]\n")
+
+        input("Once a new game starts, you may need to click on the window to allow it to read your key presses [Press Enter]\n")
+     
+
+        a = input("Enter 'n' to advance to the game. Enter any other key to hear these instructions again. [Press key then press enter]\n")
         if a == 'n':
             break 
-
-    input("You will be allowed 1 practise round. [Press Enter to begin practise round 1]\n")
     
     
     ACTIONS = env.action_space.n
     SKIP_CONTROL = 0    # Use previous control decision SKIP_CONTROL times, that's how you
                         # can test what skip is still usable.
 
-    env.render()
-    env.unwrapped.viewer.window.on_key_press = key_press
-    env.unwrapped.viewer.window.on_key_release = key_release
-
-    rollout(wrapper_env)
-
-    input("Practise round 1 complete. [Press enter to start next game]\n")
-
-
     while 1:
         wrapper_env.reset()
 
-        env.render()
-        env.unwrapped.viewer.window.on_key_press = key_press
-        env.unwrapped.viewer.window.on_key_release = key_release
         rollout(wrapper_env)
 
-        contin = input("Play again? [Press 'y' and enter for yes, 'n' and enter for no] ")
+        entered = False
+        while not entered:
+
+            rate = input("How well do you think you played on that game? [Enter a number 1-5] ")
+            if rate >= 1 and <= 5:
+                break
+            else:
+                print("Invalid rating, please enter a rating from 1-5")
+
+        
+        rate_file = Path(wrapper_env.log_params["dir_episodes"])/str(wrapper_env.game_number - 1) / "rate.txt"
+
+        with open(rate_file, "w+") as f:
+            f.write(str(rate))
+
+
+        contin = input("Do you want to play again? [Press 'y' and enter for yes, 'n' and enter for no] ")
 
         if contin == 'n':
             break
