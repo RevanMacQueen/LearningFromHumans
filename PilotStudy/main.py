@@ -181,7 +181,7 @@ if __name__ == "__main__":
         entered = False
         while not entered:
 
-            rate = input("How well do you think you played on that game? [Enter a number 1-5] \n>>>")
+            rate = input("How well do you think you played on that game? [Enter a number 1-5 (1 low, 5 high)] \n>>>")
             try:
                 rate = int(rate)
                 if rate >= 1 and rate <= 5:
