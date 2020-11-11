@@ -72,7 +72,7 @@ Here you will be given on-screen instuctions how to complete the pilot study. Th
 
 ### 3. Zip up demonstrations.
 
-Once you're done giving demonstrations, run the folling command to zip up all your demonstrations:
+Once you're done giving demonstrations, run the following command to zip up all your demonstrations:
 ```
 python3 zip.py # MacOS or Linux
 ```
