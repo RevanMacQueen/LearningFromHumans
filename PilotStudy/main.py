@@ -112,9 +112,10 @@ if __name__ == "__main__":
 
 
     while True:
-        input("Hello! Welcome to the ZPD from human demonstrations pilot study! [Press Enter]\n")
+        input("Hello! Welcome to the ZPD from human demonstrations pilot study! Thanks for taking the time to take part. [Press Enter]\n")
         input("You will be playing Atari Breakout to help teach a reinforcement learning agent how to play. [Press Enter]\n")
-        input("You can play as many games as you would like. We ask you to play at least 5 games, but the more games you play the better our agent will learn. [Press Enter]\n")
+        input("You can play as many games as you would like. We ask you to play at least 5 games, but if you feel like playing more games it would be greatly appreciated! The more games you play the better our agent will learn. [Press Enter]\n")
+        input("The better you play, the better our agent will learn (no pressure!) [Press Enter]\n")
         input("After each game you will be asked via the terminal to rate how well you played and whether you would like to play again. We will use the rating information to decide in which order to give demonstrations to our RL agent [Press Enter]\n")
 
         print("The goal of the game is to break all the blocks at the top of the display, in order to get as many points as possible.")
@@ -132,8 +133,6 @@ if __name__ == "__main__":
         if a == 'n':
             break 
     
-
-
     params = parser.parse_args()
     logger = logging.getLogger("train_env")
 
@@ -173,9 +172,11 @@ if __name__ == "__main__":
     SKIP_CONTROL = 0    # Use previous control decision SKIP_CONTROL times, that's how you
                         # can test what skip is still usable.
 
+    games_completed = 0
+    total_games = 5
+
     while 1:
         wrapper_env.reset()
-
         rollout(wrapper_env)
 
         entered = False
@@ -190,18 +191,18 @@ if __name__ == "__main__":
                     print("Invalid rating, please enter a rating from 1-5\n")
             except:
                 print("Not a number\n")
-                
-
-
-        
+                        
         rate_file = Path(wrapper_env.log_params["dir_episodes"])/str(wrapper_env.game_number - 1) / "rate.txt"
 
         with open(rate_file, "w+") as f:
             f.write(str(rate))
 
+        games_completed += 1
 
-        contin = input("Do you want to play again? [Press 'y' and enter for yes, 'n' and enter for no]\n>>> ")
+        if games_completed >= total_games:
+            contin = input("Do you want to play again? [Press 'y' and enter for yes, 'n' and enter for no]\n>>> ")
 
-        if contin == 'n':
-            break
-
+            if contin == 'n':
+                break
+        else:
+            input("%d/%d games completed. [Press enter to start next game]\n" % (games_completed, total_games))
