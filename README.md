@@ -26,7 +26,7 @@ pip3 install -e .
 ```
 
 ### Windows
-Running the code in this repo requires [Python 3](https://www.python.org/downloads/) to run. We recommend using python 3.8. This repo WILL NOT work with Python 3.9.
+Running the code in this repo requires [Python 3](https://www.python.org/downloads/) to run. We recommend using python 3.8. This repo WILL NOT work with Python 3.9. Unfortunatly setting up this repo is a bit more complicated on Windows than on Unix-based operating systems. 
 
 We suggest you create a [Virtual Environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/)
 to run this repo. Note: activating a virtual environment on Windows might return an error, this is a problem with execution policy settings. To fix it, try executing `Set-ExecutionPolicy Unrestricted -Scope Process` before activating the virtual environment. For more info see [here](https://stackoverflow.com/questions/18713086/virtualenv-wont-activate-on-windows/30413393).
@@ -37,13 +37,25 @@ git clone https://github.com/RevanMacQueen/LearningFromHumans.git
 cd LearningFromHumans
 ```
 
-To install dependencies (with an activated virtual environment):
+Run the following commands to install the virtualenv Python package and create a new virtual environment called "venv" 
 ```
-pip install --upgrade pip
+py -m pip install --upgrade pip
+py -m pip install --user virtualenv
+py -m venv venv
+```
+
+Now we need to activate the virtual environent:
+```
+Set-ExecutionPolicy Unrestricted -Scope Proces
+venv\Scripts\activate
+```
+
+With an activated virtual environment, install the dependencies:
+```
 pip install -r requirements_windows.txt
 pip install -f https://github.com/Kojoley/atari-py/releases atari_py 
 ```
-Now install the `lfh` directory
+Lastly, install the `lfh` directory:
 ```
 pip install -e .
 ```
