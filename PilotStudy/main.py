@@ -25,6 +25,8 @@ def key_press(key, mod):
     global human_agent_action, human_wants_restart, human_sets_pause, start_episode
 
     a = int(key)
+
+    print(a)
     if a==112: human_sets_pause = not human_sets_pause
 
     if a == ord('a'):
@@ -110,13 +112,16 @@ if __name__ == "__main__":
         input("Hello! Welcome to the ZPD from human demonstrations pilot study! Thanks for taking the time to take part. [Press Enter]\n")
         input("You will be playing Atari Breakout to help teach a reinforcement learning agent how to play. [Press Enter]\n")
         input("You can play as many games as you would like. We ask you to play at least 5 games, but if you feel like playing more games it would be greatly appreciated! The more games you play the better our agent will learn. [Press Enter]\n")
-        input("The better you play, the better our agent will learn (no pressure!) [Press Enter]\n")
+        input("Since your playing will be teaching the agent, please play to the best of your ability. [Press Enter]\n")
         input("After each game you will be asked via the terminal to rate how well you played and whether you would like to play again. We will use the rating information to decide in which order to give demonstrations to our RL agent [Press Enter]\n")
 
         input("The goal of the game is to break all the blocks at the top of the display, in order to get as many points as possible. [Press Enter]\n")
         print("You control a paddle at the bottom of the screen, the controls are:\n")
         print("\t 'a' to move left")
         print("\t 'd' to move right\n")
+        print("\t 'p' to pause the game"  )
+
+        input("You will use the ")
 
         input("You can additionally press 'p' to pause the game. [Press Enter]\n")
         input("The game will start in pause mode, press 'p' to start the game once the window is open. [Press Enter]\n")
@@ -200,4 +205,4 @@ if __name__ == "__main__":
             if contin == 'n':
                 break
         else:
-            input("%d/%d games completed. [Press enter to start next game]\n" % (games_completed, total_games))
+            input("%d/%d games completed. Please press enter, and then press 'p' on the Atari UI to start the next game.\n" % (games_completed, total_games))
