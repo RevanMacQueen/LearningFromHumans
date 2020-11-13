@@ -39,9 +39,7 @@ pip3 install -e .
 ### Windows
 Running the code in this repo requires [Python 3](https://www.python.org/downloads/) to run. We recommend using python 3.8. This repo WILL NOT work with Python 3.9. Unfortunately setting up this repo is a bit more complicated on Windows than on Unix-based operating systems. 
 
-We suggest you create a [Virtual Environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/)
-to run this repo. Note: activating a virtual environment on Windows might return an error, this is a problem with execution policy settings. To fix it, try executing `Set-ExecutionPolicy Unrestricted -Scope Process` before activating the virtual environment. For more info see [here](https://stackoverflow.com/questions/18713086/virtualenv-wont-activate-on-windows/30413393).
-
+We suggest you create a [Virtual Environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/)to run this repo.
 First, clone this repository.
 ```
 git clone https://github.com/RevanMacQueen/LearningFromHumans.git
@@ -55,9 +53,9 @@ py -m pip install --user virtualenv
 py -m venv venv
 ```
 
-Now we need to activate the virtual environent:
+Now we need to activate the virtual environent.  Note: activating a virtual environment on Windows might return an error, this is a problem with execution policy settings. To fix it, try executing `Set-ExecutionPolicy Unrestricted -Scope Process` before activating the virtual environment. For more info see [here](https://stackoverflow.com/questions/18713086/virtualenv-wont-activate-on-windows/30413393). This only seems to be a problem with PowerShell, so wer recommend you use Command Prompt.
+
 ```
-Set-ExecutionPolicy Unrestricted -Scope Proces
 venv\Scripts\activate
 ```
 
