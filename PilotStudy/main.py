@@ -27,9 +27,9 @@ def key_press(key, mod):
     a = int(key)
     if a==112: human_sets_pause = not human_sets_pause
 
-    if a == ord('a'):
+    if a == 65361:
         human_agent_action = 3
-    elif a == ord('d'):
+    elif a == 65363:
         human_agent_action = 2
     else:
         return
@@ -38,9 +38,9 @@ def key_release(key, mod):
     global human_agent_action
     #a = int( key - ord('0') )
     a = int(key)
-    if a == ord('a'):
+    if a == 65361:
         human_agent_action = 0
-    elif a == ord('d'):
+    elif a == 65363:
         human_agent_action = 0
     else:
         return
@@ -117,9 +117,9 @@ if __name__ == "__main__":
         input("If you're unfamiliar with this game, we recommend you watch this video to see the game in action: https://www.youtube.com/watch?v=V1eYniJ0Rnk [Press Enter]\n" )
 
         print("You control a paddle at the bottom of the screen, the controls are:\n")
-        print("\t 'a' to move left")
-        print("\t 'd' to move right\n")
-        print("\t 'p' to pause the game"  )
+        print("\t 'left arrow key' to move left")
+        print("\t 'right arrow key' to move right")
+        print("\t 'p' to pause the game\n"  )
 
        
         input("The game will start in pause mode, press 'p' to start the game once the window is open. [Press Enter]\n")
@@ -171,7 +171,7 @@ if __name__ == "__main__":
                         # can test what skip is still usable.
 
     games_completed = 0
-    total_games = 5
+    total_games = 1
 
     while 1:
         wrapper_env.reset()
@@ -204,5 +204,6 @@ if __name__ == "__main__":
 
             if contin == 'n':
                 break
+            print("Please press 'p' on the Atari UI to start the next game.\n" )
         else:
             input("%d/%d games completed. Please press enter, and then press 'p' on the Atari UI to start the next game.\n" % (games_completed, total_games))
