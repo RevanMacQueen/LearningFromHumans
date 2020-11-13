@@ -1,5 +1,5 @@
 # LearningFromHumans
-Git Repo for CMPUT 656: Interactive Machine Learning pilot study. we are extending the work previously done by Seita et al. (https://arxiv.org/abs/1910.12154) to learn Breakout from a curriculum of human demonstrations.
+Git Repo for CMPUT 656: Interactive Machine Learning pilot study. We are extending the work previously done by Seita et al. (https://arxiv.org/abs/1910.12154) to learn Breakout from a curriculum of human demonstrations.
 
 ## Installation
 
