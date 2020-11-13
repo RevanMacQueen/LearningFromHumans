@@ -171,7 +171,7 @@ if __name__ == "__main__":
                         # can test what skip is still usable.
 
     games_completed = 0
-    total_games = 1
+    total_games = 5
 
     while 1:
         wrapper_env.reset()
