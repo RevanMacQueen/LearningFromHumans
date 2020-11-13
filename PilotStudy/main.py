@@ -25,8 +25,6 @@ def key_press(key, mod):
     global human_agent_action, human_wants_restart, human_sets_pause, start_episode
 
     a = int(key)
-
-    print(a)
     if a==112: human_sets_pause = not human_sets_pause
 
     if a == ord('a'):
@@ -96,7 +94,7 @@ def rollout(env):
     env.increment_game_number()
     human_sets_pause = True
     #print("timesteps %i reward %0.2f" % (total_timesteps, total_reward))
-
+    return total_reward
 
 if __name__ == "__main__":
     # Read configurations from file
@@ -113,22 +111,22 @@ if __name__ == "__main__":
         input("You will be playing Atari Breakout to help teach a reinforcement learning agent how to play. [Press Enter]\n")
         input("You can play as many games as you would like. We ask you to play at least 5 games, but if you feel like playing more games it would be greatly appreciated! The more games you play the better our agent will learn. [Press Enter]\n")
         input("Since your playing will be teaching the agent, please play to the best of your ability. [Press Enter]\n")
-        input("After each game you will be asked via the terminal to rate how well you played and whether you would like to play again. We will use the rating information to decide in which order to give demonstrations to our RL agent [Press Enter]\n")
+        input("After each game you will be asked via the terminal to rate how well you played and whether you would like to play again. We will use the rating information to decide in which order to give demonstrations to our RL agent. [Press Enter]\n")
+        input("You will control a paddle to hit a ball towards the bricks at the top of the game window.  [Press Enter]\n")
+        input("The goal of the game is to break all the bricks at the top of the display, in order to get as many points as possible. [Press Enter]\n")
+        input("If you're unfamiliar with this game, we recommend you watch this video to see the game in action: https://www.youtube.com/watch?v=V1eYniJ0Rnk [Press Enter]\n" )
 
-        input("The goal of the game is to break all the blocks at the top of the display, in order to get as many points as possible. [Press Enter]\n")
         print("You control a paddle at the bottom of the screen, the controls are:\n")
         print("\t 'a' to move left")
         print("\t 'd' to move right\n")
         print("\t 'p' to pause the game"  )
 
-        input("You will use the ")
-
-        input("You can additionally press 'p' to pause the game. [Press Enter]\n")
+       
         input("The game will start in pause mode, press 'p' to start the game once the window is open. [Press Enter]\n")
         input("The window may initally appear small, once the game is paused you can adjust the size of the window. [Press Enter]\n")
-
         input("Once a new game starts, you may need to click on the window to allow it to read your key presses. [Press Enter]\n")
-     
+        
+    
         a = input("Enter 'n' to advance to the game. Enter any other key to hear these instructions again. [Press key then press enter]\n>>>")
         if a == 'n':
             break 
@@ -177,7 +175,9 @@ if __name__ == "__main__":
 
     while 1:
         wrapper_env.reset()
-        rollout(wrapper_env)
+        total_reward = rollout(wrapper_env)
+
+        print("Game complete. Your score was: %d" % total_reward)
 
         entered = False
         while not entered:
