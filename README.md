@@ -19,11 +19,11 @@ Next, run the following commands to install the virtualenv Python package and cr
 ```
 pip3 install --upgrade pip
 python3 -m pip install --user virtualenv
+python3 -m venv venv
 ```
 
 Now activate your virtual environment:
 ```
-python3 -m venv venv
 source venv/bin/activate
 ```
 
