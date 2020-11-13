@@ -9,15 +9,26 @@ Running the code in this repo requires [Python 3](https://www.python.org/downloa
 We suggest you create a [Virtual Environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/)
 to run this repo.
 
-First clone this repository.
+First, clone this repository.
 ```
 git clone https://github.com/RevanMacQueen/LearningFromHumans.git
 cd LearningFromHumans
 ```
 
-To install dependencies (with an activated virtual environment):
+Next, run the following commands to install the virtualenv Python package and create a new virtual environment called "venv" 
 ```
 pip3 install --upgrade pip
+python3 -m pip install --user virtualenv
+```
+
+Now activate your virtual environment:
+```
+python3 -m venv venv
+source venv/bin/activate
+```
+
+To install dependencies (with an activated virtual environment):
+```
 pip3 install -r requirements.txt
 ```
 Now install the `lfh` directory
@@ -26,18 +37,18 @@ pip3 install -e .
 ```
 
 ### Windows
-Running the code in this repo requires [Python 3](https://www.python.org/downloads/) to run. We recommend using python 3.8. This repo WILL NOT work with Python 3.9. Unfortunatly setting up this repo is a bit more complicated on Windows than on Unix-based operating systems. 
+Running the code in this repo requires [Python 3](https://www.python.org/downloads/) to run. We recommend using python 3.8. This repo WILL NOT work with Python 3.9. Unfortunately setting up this repo is a bit more complicated on Windows than on Unix-based operating systems. 
 
 We suggest you create a [Virtual Environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/)
 to run this repo. Note: activating a virtual environment on Windows might return an error, this is a problem with execution policy settings. To fix it, try executing `Set-ExecutionPolicy Unrestricted -Scope Process` before activating the virtual environment. For more info see [here](https://stackoverflow.com/questions/18713086/virtualenv-wont-activate-on-windows/30413393).
 
-First clone this repository.
+First, clone this repository.
 ```
 git clone https://github.com/RevanMacQueen/LearningFromHumans.git
 cd LearningFromHumans
 ```
 
-Run the following commands to install the virtualenv Python package and create a new virtual environment called "venv" 
+Next, run the following commands to install the virtualenv Python package and create a new virtual environment called "venv" inside LearningFromHumans/.
 ```
 py -m pip install --upgrade pip
 py -m pip install --user virtualenv
@@ -92,7 +103,6 @@ python3 zip.py # MacOS or Linux
 ```
 python zip.py # Windows
 ```
-
 
 This will create a new file demonstrations_TIME.zip in the PilotStudy directory,  where TIME will be replaced with the time the .zip was created. 
 
