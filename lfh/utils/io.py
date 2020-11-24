@@ -4,7 +4,8 @@ import pickle
 # import torch
 from glob import glob
 from pathlib import Path
-
+import numpy as np
+import matplotlib.pyplot as plt
 import os.path as osp
 
 
@@ -157,3 +158,73 @@ def load_results(dir):
     df['t'] -= min(header['t_start'] for header in headers)
     df.headers = headers # HACK to preserve backwards compatibility
     return df
+
+
+
+def load_demonstrations(root, plot = False):
+    '''
+    Loads all demonstrations, and saves them into two directories:
+     "return_ordered_demononstrations" and "player_ordered_demonstrations". 
+
+    This code is gross but works for now
+    '''
+
+    episode_ctr = 0 # counter for giving episodes unqiue IDs when saving
+
+    rewards = list()
+
+
+    for demonstrator_id in os.listdir(root):
+        demonstrator_path =  os.path.join(root, demonstrator_id )
+        demonstrator_path = os.path.join(demonstrator_path, "demonstrations")
+
+        for demonstration_id in os.listdir(demonstrator_path):
+            demonstration_path = os.path.join(demonstrator_path,  demonstration_id)
+            demonstration_path = os.path.join(demonstration_path,   "episodes")
+            episode_num = 1
+
+            for episode_dir in  os.listdir(demonstration_path): 
+                episode_path = os.path.join(demonstration_path, episode_dir)
+
+                self_rating = None
+                rate_file = os.path.join(episode_path ,"rate.txt")
+                with open(rate_file, "r")as f:
+                    self_rating = int(f.read())
+
+                for filename in os.listdir(episode_path):
+
+                    if filename.endswith(".pkl"): # filter out rating files
+                        traj_file = os.path.join(episode_path, filename)
+
+
+                        with open(traj_file, 'rb') as f:
+                            traj = pickle.load(f)# trajectory is an Episode object
+
+                        # first save in return_ordered_demononstrations in a subdirectory for the return. 
+                        traj_return =  traj.episode_total_reward 
+                        rewards.append(traj_return)
+
+                        # ordered_save_dir = Path("return_ordered_demononstrations")/str(traj_return)
+                        # ordered_save_dir.mkdir(parents=True, exist_ok=True)
+                        # ordered_save_path =  ordered_save_dir/ "episode_{}.pkl".format(episode_ctr)
+
+                        # with open(ordered_save_path, 'wb') as _trajectory_file:
+                        #     pickle.dump(traj, _trajectory_file)
+
+                        # # next save according to players self rating
+                        # ordered_save_dir = Path("player_ordered_demonstrations")/str(self_rating)
+                        # ordered_save_dir.mkdir(parents=True, exist_ok=True)
+                        # ordered_save_path =  ordered_save_dir/ "episode_{}.pkl".format(episode_ctr)
+
+                        # with open(ordered_save_path, 'wb') as _trajectory_file:
+                        #     pickle.dump(traj, _trajectory_file)
+
+                        episode_ctr += 1 #increment index
+
+    if plot:
+        n, bins, patches = plt.hist(rewards, bins = list(range(0, 30)) )
+        plt.xlabel('Total Return For Trajectory')
+        plt.ylabel('Count')
+        plt.show()
+
+    print(episode_ctr)

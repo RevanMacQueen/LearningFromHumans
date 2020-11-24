@@ -12,6 +12,9 @@ venv/
 # Run directories
 *_breakout*
 demonstrations/
+BreakoutDemonstrations/
+lfh/return_ordered_demononstrations
+lfh/player_ordered_demonstrations
 
 # vs code
 .vscode/
