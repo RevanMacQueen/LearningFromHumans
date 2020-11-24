@@ -2,15 +2,15 @@ import os
 import argparse
 import logging
 import time
-from lfh.configs import Configurations
+from lfh.utils.config import Configurations
 from lfh.utils.setup import cuda_config, set_all_seeds
 from lfh.utils.io import write_dict
 from lfh.utils.train import init_atari_model
 from lfh.utils.logger import setup_logger
-from lfh.environment.atari import make_env
+from lfh.environment.atari_wrappers import make_env
 import torch.multiprocessing as mp
 from tensorboardX import SummaryWriter
-from lfh.replay.base import ExperienceReplay
+from lfh.replay.experience import ExperienceReplay
 from lfh.optimizer import Optimizer
 from lfh.agent.dqn import DQNTrainAgent
 # from lfh.teacher.teacher_centers import MultiTeacherTeachingCenter
@@ -46,6 +46,7 @@ def main(params):
     # Remap the gpu devices if using gpu
     if cuda_config(gpu=params.params["gpu"]["enabled"],
                    gpu_id=params.params["gpu"]["id"]):
+        print("GPU enabled")
         params.params["gpu"]["id"] = 0
 
     # Include log directory names in the params
@@ -63,18 +64,15 @@ def main(params):
         episode_life=params.params["env"]["episode_life"],
         skip_frame=params.params["env"]["frame_skip"],
         clip_rewards=params.params["env"]["clip_rewards"],
-        frame_stack=params.params["env"]["frame_stack"],
-        logdir=params.params["log"]["dir"])
+        frame_stack=params.params["env"]["frame_stack"])
+       # logdir=params.params["log"]["dir"])
     params.params["env"]["num_actions"] = _env.action_space.n
     params.params["env"]["action_meanings"] = \
         _env.unwrapped.get_action_meanings()
     params.params["env"]["obs_space"] = _env.observation_space.shape
     params.params["env"]["total_lives"] = _env.unwrapped.ale.lives()
 
-    # Output all configurations
-    params = params.dump()
-    logger.debug("Hyper-parameters have been written to disk as followings:"
-                 " {0}".format(pformat(params)))
+
 
     # Set up seeds
     set_all_seeds(seed=params["seed"], gpu=params["gpu"]["enabled"])

@@ -1,16 +1,16 @@
 import copy
 import torch.nn as nn
-import dqn
-from dqn.utils.variables import create_var, create_batch
-from dqn.utils.train import merge_transitions
-from dqn.agent.agent import Agent
+import lfh
+from lfh.utils.variables import create_var, create_batch
+from lfh.utils.train import merge_transitions
+from lfh.agent.agent import Agent
 import numpy as np
 import torch
-from dqn.utils.io import write_dict
-from dqn.utils.data_structures import SMAQueue
-from dqn.teacher.snapshots_teacher import SelfReviewer
-from dqn.utils.math import sigmoid
-from dqn.replay.transition import Transition
+from lfh.utils.io import write_dict
+from lfh.utils.data_structures import SMAQueue
+#from lfh.teacher.snapshots_teacher import SelfReviewer
+from lfh.utils.math import sigmoid
+from lfh.replay.transition import Transition
 
 
 class DQNAgent(Agent):
@@ -353,41 +353,41 @@ class DQNTrainAgent(DQNAgent):
                        file_name="download_summary")
             self._train_step_counts = 0
 
-    def update_teacher_weights(self):
-        """Update teacher weights if we have more than one teacher.
+    # def update_teacher_weights(self):
+    #     """Update teacher weights if we have more than one teacher.
 
-        Not applied for normal teacher-less training runs, or for one teacher
-        case. (And if there are no samples?)
-        """
-        if self._teacher is None or self._teacher.total_num_teachers <= 1 or \
-                len(self._teacher_samples) == 0:
-            return
+    #     Not applied for normal teacher-less training runs, or for one teacher
+    #     case. (And if there are no samples?)
+    #     """
+    #     if self._teacher is None or self._teacher.total_num_teachers <= 1 or \
+    #             len(self._teacher_samples) == 0:
+    #         return
 
-        #TODO: check, can we remove this? It relies on `self._teacher_samples`
-        # but my profiling showed this was taking up an extraordinary amount of
-        # computational time becasue we keep stacking ALL transitions from the
-        # teacher's samples!
+    #     #TODO: check, can we remove this? It relies on `self._teacher_samples`
+    #     # but my profiling showed this was taking up an extraordinary amount of
+    #     # computational time becasue we keep stacking ALL transitions from the
+    #     # teacher's samples!
 
-        if self.self_reviewer is None:
-            self.self_reviewer = SelfReviewer(
-                obs_space=self._net.obs_space,
-                num_actions=self._net.num_actions,
-                train_params=self._train_params,
-                gpu_params=self._gpu_params,
-                teacher_params=self._teacher.teacher_params,
-                total_teachers=self._teacher.total_num_teachers,
-                opt_params=self._opt.params,
-                max_num_steps=self._policy.max_num_steps)
-        _scores, _num_transitions = self.self_reviewer.examine(
-            net=self.get_net(), target=self._target,
-            transitions=self._teacher_samples)
-        # _scores = (1 - np.sign(_scores))/2
-        _scores = sigmoid(_scores)
-        _update_weight = np.power(1 - self._teacher.eta, _scores)
-        _old_weight = self._teacher.teacher_weights
-        self._teacher.teacher_weights = np.multiply(_old_weight, _update_weight)
-        self.logger.info(
-            "Multiplicative weights updates: \nNumber of transitions: {0}\n"
-            "Old weights: {1} \nNew weights: {2} \nCosts (0-1): {3}".format(
-                _num_transitions, _old_weight, self._teacher.teacher_weights,_scores))
-        self._teacher_samples = {}
+    #     if self.self_reviewer is None:
+    #         self.self_reviewer = SelfReviewer(
+    #             obs_space=self._net.obs_space,
+    #             num_actions=self._net.num_actions,
+    #             train_params=self._train_params,
+    #             gpu_params=self._gpu_params,
+    #             teacher_params=self._teacher.teacher_params,
+    #             total_teachers=self._teacher.total_num_teachers,
+    #             opt_params=self._opt.params,
+    #             max_num_steps=self._policy.max_num_steps)
+    #     _scores, _num_transitions = self.self_reviewer.examine(
+    #         net=self.get_net(), target=self._target,
+    #         transitions=self._teacher_samples)
+    #     # _scores = (1 - np.sign(_scores))/2
+    #     _scores = sigmoid(_scores)
+    #     _update_weight = np.power(1 - self._teacher.eta, _scores)
+    #     _old_weight = self._teacher.teacher_weights
+    #     self._teacher.teacher_weights = np.multiply(_old_weight, _update_weight)
+    #     self.logger.info(
+    #         "Multiplicative weights updates: \nNumber of transitions: {0}\n"
+    #         "Old weights: {1} \nNew weights: {2} \nCosts (0-1): {3}".format(
+    #             _num_transitions, _old_weight, self._teacher.teacher_weights,_scores))
+    #     self._teacher_samples = {}

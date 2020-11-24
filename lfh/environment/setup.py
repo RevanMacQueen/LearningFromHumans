@@ -2,14 +2,12 @@ import time, os
 from os import path
 from pathlib import Path
 
-from lfh.envs.atari import make_env
+from lfh.environment.atari_wrappers import make_env
 from lfh.utils.io import load_results
 from lfh.replay.episode import Episode
 from lfh.replay.transition import Transition
 from lfh.utils.structures import SMAQueue
 from lfh.utils.io import save_trajectory
-
-# CURRENTLY NOT IN USE
 
 class Environment:
     """Used as the `env` input to `replay.experience.ExperienceSource`."""

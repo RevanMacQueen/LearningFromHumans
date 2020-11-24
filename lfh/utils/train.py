@@ -1,8 +1,7 @@
-from dqn.utils.variables import create_var
 import numpy as np
 from scipy import signal
-from dqn.models import AtariNet, AtariProgressNet
-from dqn.utils.variables import cuda
+from lfh.models import AtariNet, AtariProgressNet
+from lfh.utils.variables import cuda, create_var
 from torch import nn
 
 
@@ -203,7 +202,7 @@ def merge_weights(weights, learner_bs, teacher_bs):
     return np.concatenate((np.ones(learner_bs), weights))
 
 
-def compute_discount(x, gamma):
+def compute_discounted_sum(x, gamma):
     """
     Compute discounted sum of future values
     out = x[0] + gamma * x[1] + gamma^2 * x[2] + ...

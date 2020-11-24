@@ -1,12 +1,12 @@
 import logging
-from dqn.utils.setup import set_all_seeds
-from dqn.utils.data_structures import Tracker
-from dqn.utils.io import write_dict
-from dqn.utils.logger import setup_logger
-from dqn.environment.setup import Environment
-from dqn.agent.dqn import DQNAgent
-from dqn.policy import GreedyEpsilonPolicy
-from dqn.replay.experience import ExperienceSource
+from lfh.utils.setup import set_all_seeds
+from lfh.utils.data_structures import Tracker
+from lfh.utils.io import write_dict
+from lfh.utils.logger import setup_logger
+from lfh.environment.setup import Environment
+from lfh.agent.dqn import DQNAgent
+from lfh.policy import GreedyEpsilonPolicy
+from lfh.replay.experience import ExperienceSource
 import cProfile
 import os
 

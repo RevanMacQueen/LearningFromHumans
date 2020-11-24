@@ -1,5 +1,5 @@
 import torch.optim as optim
-from dqn.utils.schedules import PiecewiseSchedule
+from lfh.utils.schedules import PiecewiseSchedule
 import logging
 
 

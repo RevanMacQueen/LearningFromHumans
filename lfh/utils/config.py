@@ -57,7 +57,7 @@ class Configurations:
                                     self.params["seed"])
 
         
-        self.params["log"]["dir"] = Path( self.params["log"]["root"])/last
+        self.params["log"]["dir"] = str(Path( self.params["log"]["root"])/last)
         # __import__('pdb').set_trace()
         create_output_dir(params=self.params)
 

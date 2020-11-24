@@ -435,3 +435,82 @@ class ExperienceReplay(object):
     #     }
     #     # self._debug_progress(_output, steps, n_samples_tsne)
     #     return _output
+
+
+class ExperienceSource:
+
+    def __init__(self, env, agent, episode_per_epi):
+        """
+        `ExperienceSource` is an iterable that integrates environment and agent.
+        In train/test processes, we call the `next` for stepping purposes.
+
+        :param env: an `Environment` object, custom class wrapping around gym
+            env, adds stuff for saving; see `dqn/environment/setup.py`. Exposes
+            a similar `step` interface which calls the true gym env's step.
+        :param agent: an `Agent` object
+        :param episode_per_epi: Number of episodes to write to disk.
+        """
+        assert isinstance(agent, Agent)
+        assert isinstance(env, Environment)
+        self.env = env
+        self.agent = agent
+        self.episode_per_epi = episode_per_epi
+        self.mean_reward = None
+        self.latest_speed = None
+        self.latest_reward = None
+
+    def __iter__(self):
+        """THIS is what calls `finish_episode` with `save_tag`.
+        """
+        while True:
+            _obs = self.env.env_obs
+            _steps = self.env.env_steps
+            action = self.agent(_obs, self.env.total_steps)
+            self.env.step(action)  # ENVIRONMENT STEPPING!!!
+            _next_obs = np.expand_dims(self.env.env_obs[-1], 0)
+            if _steps == 0:
+                # new episodes, need `state`
+                _obs = _obs
+            else:
+                # --------------------------------------------------------------
+                # Existing episodes, set `state` to None.  XP replay code
+                # w/`Transition`s don't check `state` except for when it's the
+                # first in episode: see `add_one_transition()` above.
+                # --------------------------------------------------------------
+                _obs = None
+            transition = Transition(state=_obs, next_state=_next_obs,
+                                    action=action, reward=self.env.env_rew,
+                                    done=self.env.env_done)
+            yield transition
+            # ------------------------------------------------------------------
+            # If env (either train or test) has an episode which just finished,
+            # call this to formally finish and potentially save the trajectory.
+            # The `episode_per_epi` determines save frequency. Can increase it
+            # to decrease memory requirements. But this should only determine
+            # saving trajs into pickle files; regardless of what happens the
+            # replay _buffer_ should get the frames.
+            # ------------------------------------------------------------------
+            # Recall yield keyword: we stop at transition above, then next time
+            # this is called, we start here to check for if we lost a life.
+            # ------------------------------------------------------------------
+            if self.env.env_done:
+                if self.episode_per_epi:
+                    save_tag = self.env.get_num_lives() % self.episode_per_epi == 0
+                else:
+                    save_tag = False
+                self.latest_reward = self.env.epi_rew
+                self.env.finish_episode(
+                    save=save_tag, gif=False,
+                    epsilon=self.agent.get_policy_epsilon(self.env.total_steps))
+                self.latest_speed = self.env.speed
+                self.mean_reward = self.env.mean_rew
+
+    def pop_latest(self):
+        r = self.latest_reward
+        mr = self.mean_reward
+        s = self.latest_speed
+        if r is not None:
+            self.latest_reward = None
+            self.mean_reward = None
+            self.latest_speed = None
+        return r, mr, s
