@@ -57,10 +57,10 @@ def play(model, exp_queue, stop_flag, seed, log_params, gpu_params,
     I assume that because `model` is passed as input, that the agent here
     (`agent`) is always synchronized with the agent from `atari.py`.
     """
-    setup_logger(dir_path=log_params["dir"], filename="train",
-                 level=log_params["log_level"])
-    logger = logging.getLogger("train_env{0}".format(tag))
-    logger.info("Training environment has been connected and set up.")
+    # setup_logger(dir_path=log_params["dir"], filename="train",
+    #              level=log_params["log_level"])
+    # logger = logging.getLogger("train_env{0}".format(tag))
+    # logger.info("Training environment has been connected and set up.")
 
     # Set up seeds
     set_all_seeds(seed=seed, gpu=gpu_params["enabled"])

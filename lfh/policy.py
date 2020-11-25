@@ -32,6 +32,7 @@ class GreedyEpsilonPolicy(object):
     def __call__(self, qs, steps=None):
         assert isinstance(qs, np.ndarray)
         if steps and np.random.uniform() <= self.get_epsilon(steps):
+            
             return np.random.randint(0, self.num_actions)
         actions = self.selector(qs)
         return actions

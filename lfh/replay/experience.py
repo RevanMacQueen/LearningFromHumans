@@ -4,10 +4,13 @@ import random
 import pickle
 from pathlib import Path
 import numpy as np
+from tqdm import tqdm
 
 from lfh.utils.replay import merge_transitions_xp
 from lfh.replay.episode import Episode
 from lfh.replay.transition import Transition
+from lfh.agent.agent import Agent
+from lfh.environment.setup import Environment
 
 
 class ExperienceReplay(object):
@@ -212,12 +215,12 @@ class ExperienceReplay(object):
         assert isinstance(episode, Episode)
         self._buffer.append(episode)
         self.total_active_trans += episode.length
-        self.logger.debug("Life {0} (1-idx) of length {1} added into replay, "
-                          "with {2}/{3} active lifespans, {4} total frames and {5} "
-                          "registered frames.".format(
-            episode.episode_num, episode.length,
-            self.total_active_episodes, self.total_episodes,
-            self.total_active_trans, self.__len__()))
+        # self.logger.debug("Life {0} (1-idx) of length {1} added into replay, "
+        #                   "with {2}/{3} active lifespans, {4} total frames and {5} "
+        #                   "registered frames.".format(
+        #     episode.episode_num, episode.length,
+        #     self.total_active_episodes, self.total_episodes,
+        #     self.total_active_trans, self.__len__()))
 
     def _evict_episodes(self):
         """Evict early episodes if capacity is met.
@@ -239,13 +242,13 @@ class ExperienceReplay(object):
             self.total_active_trans -= _old_episode_length
             self._buffer[self._first_active_idx] = None
             self._first_active_idx += 1
-            self.logger.debug(
-                "Life {0} of length {1} was evicted from replay memory, "
-                "with {2}/{3} active lifespans, {4} total frames and {5} "
-                "registered frames.".format(
-                    _old_episode_num, _old_episode_length,
-                    self.total_active_episodes, self.total_episodes,
-                    self.total_active_trans, self.__len__()))
+            # self.logger.debug(
+            #     "Life {0} of length {1} was evicted from replay memory, "
+            #     "with {2}/{3} active lifespans, {4} total frames and {5} "
+            #     "registered frames.".format(
+            #         _old_episode_num, _old_episode_length,
+            #         self.total_active_episodes, self.total_episodes,
+            #         self.total_active_trans, self.__len__()))
 
     def _init_episode(self, init_obs):
         """
@@ -287,13 +290,13 @@ class ExperienceReplay(object):
         self._current_episode.add_transition(transition)
         self.total_active_trans += 1
         if transition.done:
-            self.logger.debug("Life {0} finished w/{1} transition "
-                              "frames. RBuffer contains {2}/{3} active episodes, "
-                              "{4} total frames and {5} registered frames.".format(
-                self._current_episode.episode_num,
-                self._current_episode.length,
-                self.total_active_episodes, self.total_episodes,
-                self.total_active_trans, self.__len__()))
+            # self.logger.debug("Life {0} finished w/{1} transition "
+            #                   "frames. RBuffer contains {2}/{3} active episodes, "
+            #                   "{4} total frames and {5} registered frames.".format(
+            #     self._current_episode.episode_num,
+            #     self._current_episode.length,
+            #     self.total_active_episodes, self.total_episodes,
+            #     self.total_active_trans, self.__len__()))
             self._current_episode = None
 
     def save(self, fname: Path) -> None:
@@ -439,7 +442,7 @@ class ExperienceReplay(object):
 
 class ExperienceSource:
 
-    def __init__(self, env, agent, episode_per_epi):
+    def __init__(self, env, agent, episode_per_epi, max_episodes):
         """
         `ExperienceSource` is an iterable that integrates environment and agent.
         In train/test processes, we call the `next` for stepping purposes.
@@ -458,6 +461,8 @@ class ExperienceSource:
         self.mean_reward = None
         self.latest_speed = None
         self.latest_reward = None
+        self.max_episodes = max_episodes
+        self.pbar = tqdm(total=max_episodes)
 
     def __iter__(self):
         """THIS is what calls `finish_episode` with `save_tag`.
@@ -481,6 +486,7 @@ class ExperienceSource:
             transition = Transition(state=_obs, next_state=_next_obs,
                                     action=action, reward=self.env.env_rew,
                                     done=self.env.env_done)
+
             yield transition
             # ------------------------------------------------------------------
             # If env (either train or test) has an episode which just finished,
@@ -494,8 +500,9 @@ class ExperienceSource:
             # this is called, we start here to check for if we lost a life.
             # ------------------------------------------------------------------
             if self.env.env_done:
+                self.pbar.update(1)
                 if self.episode_per_epi:
-                    save_tag = self.env.get_num_lives() % self.episode_per_epi == 0
+                    save_tag = False #self.env.get_num_lives() % self.episode_per_epi == 0 #Revan: I changed this to never save
                 else:
                     save_tag = False
                 self.latest_reward = self.env.epi_rew
@@ -504,6 +511,10 @@ class ExperienceSource:
                     epsilon=self.agent.get_policy_epsilon(self.env.total_steps))
                 self.latest_speed = self.env.speed
                 self.mean_reward = self.env.mean_rew
+
+                if self.env.get_num_episodes() > self.max_episodes: # stopping condition
+                    yield None
+
 
     def pop_latest(self):
         r = self.latest_reward

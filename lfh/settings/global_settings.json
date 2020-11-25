@@ -28,8 +28,8 @@
   },
   "epsilon": {
     "start": 1.0,
-    "frames_mid": 1000000,
-    "frames_end": 4000000,
+    "frames_mid": 100000,
+    "frames_end": 200000,
     "mid": 0.1,
     "end": 0.01
   },

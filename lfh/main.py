@@ -14,9 +14,10 @@ from lfh.utils.logger import setup_logger
 from lfh.environment.atari_wrappers import make_env
 import torch.multiprocessing as mp
 from tensorboardX import SummaryWriter
-from lfh.replay.experience import ExperienceReplay
+from lfh.replay.experience import ExperienceReplay, ExperienceSource
 from lfh.optimizer import Optimizer
 from lfh.agent.dqn import DQNTrainAgent
+from lfh.environment.setup import Environment
 # from lfh.teacher.teacher_centers import MultiTeacherTeachingCenter
 # from lfh.utils.debug import generate_debug_msg
 from lfh.policy import GreedyEpsilonPolicy
@@ -65,6 +66,16 @@ def main(params):
     if cuda_config(gpu=params.params["gpu"]["enabled"],
                    gpu_id=params.params["gpu"]["id"]):
         params.params["gpu"]["id"] = 0
+
+
+    # Include log directory names in the params
+    setup_logger(dir_path=params.params["log"]["dir"],
+                 filename="root",
+                 level=params.params["log"]["log_level"])
+    logger = logging.getLogger("root")
+    logger.info("Output directory is located at {0}."
+                .format(params.params["log"]["dir"]))
+
 
     # Set env to add stuff to `params['env']` -- we do NOT use this `_env` for
     # stepping; we create again in `dqn/processes.py` via `Environment` class.
@@ -116,7 +127,7 @@ def main(params):
                     train_freq_per_step=params["train"]["train_freq_per_step"])
 
     # Initialize dqn agent. Like I do, it uses a schedule.
-    _policy = GreedyEpsilonPolicy(
+    policy = GreedyEpsilonPolicy(
         params=params["epsilon"], num_actions=params["env"]["num_actions"],
         max_num_steps=params["env"]["max_num_steps"],
         train_freq_per_step=params["train"]["train_freq_per_step"])
@@ -124,36 +135,8 @@ def main(params):
     agent = DQNTrainAgent(net=model, gpu_params=params['gpu'],
                           log_params=params["log"],
                           opt=opt, train_params=params["train"],
-                          replay=replay_memory, policy=_policy, teacher=None,
+                          replay=replay_memory, policy=policy, teacher=None,
                           avg_window=params["env"]["avg_window"])
-
-    # --------------------------------------------------------------------------
-    # Initialized other processes. From torch.multiprocessing, 100% compatible
-    # with normal python multiprocessing, so look at docs there.  E.g., create
-    # `Process` w/target and args, and start w/[proc].start(). We have play and
-    # test processes. We get a process each for training and testing; debug logs
-    # show that train/test envs happen simultaneously.
-    # --------------------------------------------------------------------------
-    exp_queue = mp.Queue(maxsize=params["train"]['train_freq_per_step'] * 2)
-    play_stop_flag = mp.Event()
-    _play_process = mp.Process(
-        target=play, args=(
-            model, exp_queue, play_stop_flag, params["seed"], params["log"],
-            params["gpu"], params["epsilon"], params["env"],
-            params["train"]["train_freq_per_step"]))
-    _play_process.start()
-
-    # Similarly, the test process, which gets `rew_queue` not `exp_queue`.
-    have_test_proc = params['log']['have_test_proc']
-    if have_test_proc:
-        rew_queue = mp.Queue(maxsize=2)
-        test_stop_flag = mp.Event()
-        _test_process = mp.Process(
-            target=test, args=(
-                model, rew_queue, test_stop_flag, params["seed"], params["log"],
-                params["gpu"], params["epsilon"], params["env"],
-                params["train"]["train_freq_per_step"]))
-        _test_process.start()
 
     # Finally, training. See `global_settings` and other experiment files.
     snapshots_summary = {}
@@ -171,76 +154,46 @@ def main(params):
     matched_list = None
     test_match = False
 
-    while True:
-        # ----------------------------------------------------------------------
-        # Go through sufficient steps before training, default is 4, similar to
-        # my (serial) Pong code. Also, note that we deal with `steps` here, but
-        # each `step` is actually 4 'frames' in Pong emulator. I think Allen's
-        # schedules, though params say 'frames', are actually wrt steps.  Get
-        # from `exp_queue`, not `rew_queue`, presumably because we should use
-        # samples from the former process for training. Queue returns `exp`:
-        #     (<lfh.replay.transition.Transition, None, None, None)
-        # If nothing left, we're done.
-        # ----------------------------------------------------------------------
+    # exp_queue = mp.Queue(maxsize=params["train"]['train_freq_per_step'] * 2)
 
+    # Initialize environment 
+    train_env = Environment(env_params=params["env"], log_params=params["log"],
+                            train=True, logger=logger, seed=params["seed"],)
+
+    exp_source = ExperienceSource(env=train_env, agent=agent,
+                                  episode_per_epi=params["log"]["episode_per_epi"], max_episodes=10000)
+    exp_source_iter = iter(exp_source)
+    # exp_queue.put(None)
+
+    while not _end:
         for _ in range(params["train"]['train_freq_per_step']): # for number of training iter per step
+        
             steps += 1
-            exp = exp_queue.get() # grab a transition
+            try:
+                exp = next(exp_source_iter)    
+            except:
+                pass
+    
+
+            rewards, mean_rewards, speed = exp_source.pop_latest()
+            
+            if rewards is not None: # only happens at end of an episode
+                _play_rewards.append(rewards)
+           
             if exp is None:
-                _play_process.join()
                 _end = True
                 break
+   
+            replay_memory.add_one_transition(exp) # add transition to ERB
 
-            replay_memory.add_one_transition(exp[0]) # add transition to ERB
-
-
-
-
-            # ------------------------------------------------------------------
-            # Only invokes if more in exp, happens when finishing a _life_.  If
-            # no teachers, `ts.matching` (needs true rew) does nothing. I
-            # changed so we only do _matching_ check if an _episode_ finished;
-            # you have to finish a life before an episode can possibly be done.
-            # ------------------------------------------------------------------
-            if exp[1] is not None:
-                _play_rewards.append(exp[1]) # append rewards to list
-                _play_speeds.append(exp[2])  # not sure
-
-
-
-                # Looks like this is where matching happens
-                rew_list = get_true_rew(params["log"]["dir"])
-                if len(rew_list) > num_true_episodes:   
-                    assert len(rew_list) == num_true_episodes + 1
-                    num_true_episodes += 1
-                    if len(replay_memory) >= params["replay"]['initial']:
-
-
-
-
-                        rew_list = get_true_rew(params["log"]["dir"])
-                        rew_true = np.mean(rew_list[-avg_w:])
-                        matched_list = ts.matching(rew_true, steps=steps, agent=agent) 
-                        if matched_list is not None:
-                            test_match = True
-
-                # rewards from testing
-                if have_test_proc:
-                    test_rew = rew_queue.get()
-                    if test_rew is None:
-                        _test_process.join()
-                        _end = True
-                        break
-                    _test_rewards.append(test_rew[0])
-                    _test_speeds.append(test_rew[1])
-
-
+        # Update time
         # Exit early, ignore training, or finish training.
         # if perform_bad_exit_early(params, steps, _play_rewards):
         #     break
-        if len(replay_memory) < params["replay"]['initial']:
+        if len(replay_memory) < params["replay"]['initial']: # to make sure there are enough steps in the replay buffer
             continue
         if _end:
+          
             write_dict(dict_object=snapshots_summary,
                        dir_path=params["log"]["dir_snapshots"],
                        file_name="snapshots_summary")
@@ -250,66 +203,34 @@ def main(params):
         # to check if saved snapshots 'match' the teacher snapshot.  The other
         # snapshot saving is for later with training a single teacher.
 
-
         # this might be where we add stuff for training with demonstrations
-
-        if test_match:
-            assert matched_list is not None
-            for tidx, titem in enumerate(matched_list):
-                if titem is not None:
-                    logger.info("matched_list (ZPD): {} w/{} idx, {} item".format(
-                        matched_list, tidx, titem))
-                    rew_list = get_true_rew(params["log"]["dir"])
-                    current_true_rew = np.mean(rew_list[-avg_w:])
-                    s_name = 'learner_{}_steps_{:.1f}_rew_{}_tidx_{}_zpd.tar'.format(
-                        str(steps).zfill(7), current_true_rew, tidx, titem)
-                    path = os.path.join(params['log']['dir_learner_snapshots'], s_name)
-                    agent.save_model_newpath(path)
-            matched_list = None
-            test_match = False
 
         # Weights should be synced among this and train/test processes.
         # Called at every multiple of four, so steps = {0,4,8,12,...}.
         agent.train(steps=steps)
 
-
-
         # Output stuff
-        if steps % params["log"]['snapshot_per_step'] < \
-                params["train"]['train_freq_per_step'] and \
-                steps > params['log']['snapshot_min_step']:
-            rew_list = get_true_rew(params["log"]["dir"])
-            current_true_rew = np.mean(rew_list[-avg_w:])
-            current_clip_rew = np.mean(_play_rewards[-avg_w:])
-            agent.save_model(snapshot_number)
-            snapshots_summary[snapshot_number] = {
-                "clip_rew_life": current_clip_rew,
-                "true_rew_epis": current_true_rew,
-                "num_finished_epis": len(rew_list),
-                "steps": steps,
-            }
-            snapshot_number += 1
-            write_dict(dict_object=snapshots_summary,
-                       dir_path=params["log"]["dir_snapshots"],
-                       file_name="snapshots_summary")
-
-    # --------------------------------------------------------------------------
-    # Only way we get here is if we hit env limit, or if we hit `_end`, yet
-    # `_end` relies on the process queue being empty. In the train process, from
-    # `Tracker` condition, if we hit a sufficiently high reward we break.
-    # --------------------------------------------------------------------------
-
-    if _play_process.is_alive():
-        play_stop_flag.set()
-        while exp_queue.get() is not None:
-            pass
-        _play_process.join()
-    if have_test_proc and _test_process.is_alive():
-        test_stop_flag.set()
-        while rew_queue.get() is not None:
-            pass
-        _test_process.join()
+        # if steps % params["log"]['snapshot_per_step'] < \
+        #         params["train"]['train_freq_per_step'] and \
+        #         steps > params['log']['snapshot_min_step']:
+        #     rew_list = get_true_rew(params["log"]["dir"])
+        #     current_true_rew = np.mean(rew_list[-avg_w:])
+        #     current_clip_rew = np.mean(_play_rewards[-avg_w:])
+        #     agent.save_model(snapshot_number)
+        #     snapshots_summary[snapshot_number] = {
+        #         "clip_rew_life": current_clip_rew,
+        #         "true_rew_epis": current_true_rew,
+        #         "num_finished_epis": len(rew_list),
+        #         "steps": steps,
+        #     }
+        #     snapshot_number += 1
+        #     write_dict(dict_object=snapshots_summary,
+        #                dir_path=params["log"]["dir_snapshots"],
+        #                file_name="snapshots_summary")
+        
     logger.info("Training complete!")
+
+    np.save("returns", _play_rewards)
 
     
 if __name__ == '__main__':

@@ -114,7 +114,7 @@ class Environment:
             self.epi_rew, self.mean_rew, self.speed)
         if epsilon:
             _info += ", epsilon {0:.2f}".format(epsilon)
-        self.logger.debug(_info)
+        #self.logger.debug(_info)
         if save:
             self.save_trajectory()
         if gif:
@@ -140,7 +140,7 @@ class Environment:
         #         self._episode_idx, true_steps[-1], true_rewards[-1])
         #     self._start_life_idx = self._life_idx + 1
         #     self.logger.debug(_info)
-
+        self._episode_idx += 1
         # Again, reset the LIFESPAN, despite the naming here ...
         self.reset_episode()
         

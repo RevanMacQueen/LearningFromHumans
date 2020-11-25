@@ -120,8 +120,8 @@ class DQNTrainAgent(DQNAgent):
         :param steps: Current total steps
         """
         self._target.init_weight(self._net.state_dict())
-        self.logger.debug("Target network has been synchronized at steps "
-                          "{0}.".format(steps))
+        # self.logger.debug("Target network has been synchronized at steps "
+        #                   "{0}.".format(steps))
 
     def sample_transitions(self, steps):
         """Sample transitions from replay buffer.
@@ -261,7 +261,7 @@ class DQNTrainAgent(DQNAgent):
         weights = self.get_weights(states, actions, transitions.weight)
 
         # (3) Bellman loss.
-        loss, qs, qs_full = dqn.utils.train.bellman_loss(
+        loss, qs, qs_full = lfh.utils.train.bellman_loss(
                 net=self._net,
                 target_net=self._target,
                 loss=self._loss_func,
@@ -278,21 +278,21 @@ class DQNTrainAgent(DQNAgent):
         if apply_extra_losses:
             self._add_new_loss(loss[learner_bs:], "bellman_from_teacher")
 
-        # (4) Teacher large-margin (i.e., supervised) loss, including lambda.
-        if self._teacher and self._teacher.supervise_loss and apply_extra_losses:
-            _supervise_loss = dqn.utils.train.supervise_loss(
-                    qs=qs,
-                    qs_full=qs_full,
-                    actions=actions,
-                    margin=self._teacher.supervise_margin,
-                    gpu=self._gpu_params["enabled"],
-                    gpu_id=self._gpu_params["id"],
-                    gpu_async=self._gpu_params["async"],
-                    loss_lambda=self._teacher.supervise_loss_lambda,
-                    loss_type=self._teacher.supervise_type,
-                    learner_bs=learner_bs)
-            self._add_new_loss(_supervise_loss[learner_bs:], "supervise_loss")
-            loss += _supervise_loss
+        # # (4) Teacher large-margin (i.e., supervised) loss, including lambda.
+        # if self._teacher and self._teacher.supervise_loss and apply_extra_losses:
+        #     _supervise_loss = lfh.utils.train.supervise_loss(
+        #             qs=qs,
+        #             qs_full=qs_full,
+        #             actions=actions,
+        #             margin=self._teacher.supervise_margin,
+        #             gpu=self._gpu_params["enabled"],
+        #             gpu_id=self._gpu_params["id"],
+        #             gpu_async=self._gpu_params["async"],
+        #             loss_lambda=self._teacher.supervise_loss_lambda,
+        #             loss_type=self._teacher.supervise_type,
+        #             learner_bs=learner_bs)
+        #     self._add_new_loss(_supervise_loss[learner_bs:], "supervise_loss")
+        #     loss += _supervise_loss
 
         return loss, weights
 
@@ -344,50 +344,50 @@ class DQNTrainAgent(DQNAgent):
         self.opt_step(steps, loss, weights)
         self._train_step_counts += 1
         if self._train_step_counts % self._train_params["target_sync_per_step"] == 0:
-            self.update_teacher_weights()
+            #self.update_teacher_weights()
             self.sync_target(steps)
-            self._timer[steps] = self._teacher.timer()
-            self._teacher.reset_timer()
-            write_dict(dict_object=self._timer,
-                       dir_path=self._log_params["dir"],
-                       file_name="download_summary")
+            # self._timer[steps] = self._teacher.timer()
+            # self._teacher.reset_timer()
+            # write_dict(dict_object=self._timer,
+            #            dir_path=self._log_params["dir"],
+            #            file_name="download_summary")
             self._train_step_counts = 0
 
-    # def update_teacher_weights(self):
-    #     """Update teacher weights if we have more than one teacher.
+    def update_teacher_weights(self):
+        """Update teacher weights if we have more than one teacher.
 
-    #     Not applied for normal teacher-less training runs, or for one teacher
-    #     case. (And if there are no samples?)
-    #     """
-    #     if self._teacher is None or self._teacher.total_num_teachers <= 1 or \
-    #             len(self._teacher_samples) == 0:
-    #         return
+        Not applied for normal teacher-less training runs, or for one teacher
+        case. (And if there are no samples?)
+        """
+        if self._teacher is None or self._teacher.total_num_teachers <= 1 or \
+                len(self._teacher_samples) == 0:
+            return
 
-    #     #TODO: check, can we remove this? It relies on `self._teacher_samples`
-    #     # but my profiling showed this was taking up an extraordinary amount of
-    #     # computational time becasue we keep stacking ALL transitions from the
-    #     # teacher's samples!
+        #TODO: check, can we remove this? It relies on `self._teacher_samples`
+        # but my profiling showed this was taking up an extraordinary amount of
+        # computational time becasue we keep stacking ALL transitions from the
+        # teacher's samples!
 
-    #     if self.self_reviewer is None:
-    #         self.self_reviewer = SelfReviewer(
-    #             obs_space=self._net.obs_space,
-    #             num_actions=self._net.num_actions,
-    #             train_params=self._train_params,
-    #             gpu_params=self._gpu_params,
-    #             teacher_params=self._teacher.teacher_params,
-    #             total_teachers=self._teacher.total_num_teachers,
-    #             opt_params=self._opt.params,
-    #             max_num_steps=self._policy.max_num_steps)
-    #     _scores, _num_transitions = self.self_reviewer.examine(
-    #         net=self.get_net(), target=self._target,
-    #         transitions=self._teacher_samples)
-    #     # _scores = (1 - np.sign(_scores))/2
-    #     _scores = sigmoid(_scores)
-    #     _update_weight = np.power(1 - self._teacher.eta, _scores)
-    #     _old_weight = self._teacher.teacher_weights
-    #     self._teacher.teacher_weights = np.multiply(_old_weight, _update_weight)
-    #     self.logger.info(
-    #         "Multiplicative weights updates: \nNumber of transitions: {0}\n"
-    #         "Old weights: {1} \nNew weights: {2} \nCosts (0-1): {3}".format(
-    #             _num_transitions, _old_weight, self._teacher.teacher_weights,_scores))
-    #     self._teacher_samples = {}
+        if self.self_reviewer is None:
+            self.self_reviewer = SelfReviewer(
+                obs_space=self._net.obs_space,
+                num_actions=self._net.num_actions,
+                train_params=self._train_params,
+                gpu_params=self._gpu_params,
+                teacher_params=self._teacher.teacher_params,
+                total_teachers=self._teacher.total_num_teachers,
+                opt_params=self._opt.params,
+                max_num_steps=self._policy.max_num_steps)
+        _scores, _num_transitions = self.self_reviewer.examine(
+            net=self.get_net(), target=self._target,
+            transitions=self._teacher_samples)
+        # _scores = (1 - np.sign(_scores))/2
+        _scores = sigmoid(_scores)
+        _update_weight = np.power(1 - self._teacher.eta, _scores)
+        _old_weight = self._teacher.teacher_weights
+        self._teacher.teacher_weights = np.multiply(_old_weight, _update_weight)
+        self.logger.info(
+            "Multiplicative weights updates: \nNumber of transitions: {0}\n"
+            "Old weights: {1} \nNew weights: {2} \nCosts (0-1): {3}".format(
+                _num_transitions, _old_weight, self._teacher.teacher_weights,_scores))
+        self._teacher_samples = {}
