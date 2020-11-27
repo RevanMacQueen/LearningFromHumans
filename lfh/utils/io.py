@@ -171,6 +171,7 @@ def load_demonstrations(root, plot = False):
 
     episode_ctr = 0 # counter for giving episodes unqiue IDs when saving
 
+    demonstrations = list()
     rewards = list()
 
 
@@ -202,29 +203,11 @@ def load_demonstrations(root, plot = False):
 
                         # first save in return_ordered_demononstrations in a subdirectory for the return. 
                         traj_return =  traj.episode_total_reward 
+
+                        demonstrations.append(traj)
                         rewards.append(traj_return)
-
-                        # ordered_save_dir = Path("return_ordered_demononstrations")/str(traj_return)
-                        # ordered_save_dir.mkdir(parents=True, exist_ok=True)
-                        # ordered_save_path =  ordered_save_dir/ "episode_{}.pkl".format(episode_ctr)
-
-                        # with open(ordered_save_path, 'wb') as _trajectory_file:
-                        #     pickle.dump(traj, _trajectory_file)
-
-                        # # next save according to players self rating
-                        # ordered_save_dir = Path("player_ordered_demonstrations")/str(self_rating)
-                        # ordered_save_dir.mkdir(parents=True, exist_ok=True)
-                        # ordered_save_path =  ordered_save_dir/ "episode_{}.pkl".format(episode_ctr)
-
-                        # with open(ordered_save_path, 'wb') as _trajectory_file:
-                        #     pickle.dump(traj, _trajectory_file)
 
                         episode_ctr += 1 #increment index
 
-    if plot:
-        n, bins, patches = plt.hist(rewards, bins = list(range(0, 30)) )
-        plt.xlabel('Total Return For Trajectory')
-        plt.ylabel('Count')
-        plt.show()
 
-    print(episode_ctr)
+    return rewards, demonstrations 

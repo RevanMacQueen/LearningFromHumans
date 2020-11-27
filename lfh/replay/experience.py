@@ -11,7 +11,7 @@ from lfh.replay.episode import Episode
 from lfh.replay.transition import Transition
 from lfh.agent.agent import Agent
 from lfh.environment.setup import Environment
-
+from lfh.utils.io import load_demonstrations
 
 class ExperienceReplay(object):
     def __init__(self, capacity, init_cap, frame_stack, gamma, tag,
@@ -128,6 +128,23 @@ class ExperienceReplay(object):
             _transitions.append(self._get_transition(i, num_steps, force))
         return merge_transitions_xp(_transitions)
 
+
+    def get_transitions_list(self, idx, num_steps, force=False):
+        """
+        Like get_transitions, but do not stack, just return list of transitions
+
+        :param idx: An iterable that contains indexes of transitions
+        :param num_steps: Number of steps to look forward
+        :param force: if `force=True`, we always return the last frame even
+        if episode frames are not enough
+        :return: list of  `Transition` objects
+        """
+        assert num_steps >= 1
+        _transitions = []
+        for i in idx:
+            _transitions.append(self._get_transition(i, num_steps, force))
+        return _transitions
+
     def sample_one(self, num_steps, output_idx=False):
         if self.__len__() < self._init_cap:
             return None
@@ -137,7 +154,7 @@ class ExperienceReplay(object):
         else:
             return self._get_transition(i=idx[0], num_steps=num_steps)
 
-    def sample(self, batch_size, num_steps, output_idx=False):
+    def sample(self, batch_size, num_steps, output_idx=False, no_stack = False):
         """Called from `agent.dqn.sample_transitions()`.
 
         Also from `SnapshotsTeacher.get_teacher_samples()` for teachers.
@@ -155,10 +172,17 @@ class ExperienceReplay(object):
         if self.__len__() < self._init_cap:
             return None
         idx = self._sample_idx(batch_size)
-        if output_idx:
-            return self.get_transitions(idx=idx, num_steps=num_steps), idx
+
+        if no_stack:
+            if output_idx:
+                return self.get_transitions_list(idx=idx, num_steps=num_steps), idx
+            else:
+                return self.get_transitions_list(idx=idx, num_steps=num_steps)
         else:
-            return self.get_transitions(idx=idx, num_steps=num_steps)
+            if output_idx:
+                return self.get_transitions(idx=idx, num_steps=num_steps), idx
+            else:
+                return self.get_transitions(idx=idx, num_steps=num_steps)
 
     def _sample_idx(self, bs):
         assert self.__len__() >= self._init_cap
@@ -235,8 +259,7 @@ class ExperienceReplay(object):
 
         'Evicting' here means setting the corresponding buffer item to None.
         """
-        while self.total_active_trans - self.capacity >= \
-                self._buffer[self._first_active_idx].length:
+        while self.total_active_trans - self.capacity >= self._buffer[self._first_active_idx].length:
             _old_episode_num = self._buffer[self._first_active_idx].episode_num
             _old_episode_length = self._buffer[self._first_active_idx].length
             self.total_active_trans -= _old_episode_length
@@ -249,6 +272,28 @@ class ExperienceReplay(object):
             #         _old_episode_num, _old_episode_length,
             #         self.total_active_episodes, self.total_episodes,
             #         self.total_active_trans, self.__len__()))
+
+    def evict_all(self):
+        """
+        Evict all episodes in the buffer
+        """
+        # idx = 0
+        # while self.total_active_trans > 0:
+
+        #     if self._buffer[idx] is not None:
+        #         _old_episode_length = self._buffer[idx].length
+        #         self.total_active_trans -= _old_episode_length
+        #         self._buffer[idx] = None
+        #     idx += 1
+        self._buffer.clear()
+        self._first_active_idx = 0
+        self.total_active_trans = 0
+    
+        self._frame_lookup = {}
+        self._episode_lookup = {}
+        self._current_pos = 0
+        self._current_episode = None
+
 
     def _init_episode(self, init_obs):
         """
@@ -287,7 +332,7 @@ class ExperienceReplay(object):
         assert transition.state is None
         self._register_frame(self._current_episode.episode_num,
                              self._current_episode.length)
-        self._current_episode.add_transition(transition)
+        self._current_episode.add_transition(transition) # NOTE:  tranistion added to episode? 
         self.total_active_trans += 1
         if transition.done:
             # self.logger.debug("Life {0} finished w/{1} transition "
@@ -311,138 +356,104 @@ class ExperienceReplay(object):
         with open(fname, 'wb') as output:
             pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
 
-    # def _debug(self, steps, output_data):
-    #     self.writer.add_scalar(
-    #         tag="{0}_replay/total_frames".format(self._tag),
-    #         scalar_value=output_data["frames"]["totals"],
-    #         global_step=steps)
-    #     self.writer.add_scalar(
-    #         tag="{0}_replay/total_active_frames".format(self._tag),
-    #         scalar_value=output_data["frames"]["total_actives"],
-    #         global_step=steps)
-    #     self.writer.add_scalar(
-    #         tag="{0}_replay/total_active_episodes".format(self._tag),
-    #         scalar_value=output_data["episodes"]["total_actives"],
-    #         global_step=steps)
-    #     if self._current_episode is None:
-    #         last_episode_num = self._buffer[-1].episode_num
-    #     else:
-    #         last_episode_num = self._buffer[-2].episode_num
-    #     _active_epi = [self._convert_episode_idx(i) for i in range(
-    #         self._buffer[self._first_active_idx].episode_num, last_episode_num)]
-    #     self.writer.add_histogram(
-    #         tag="{0}_replay/episodes_range".format(self._tag),
-    #         values=np.arange(self._buffer[self._first_active_idx].episode_num,
-    #                          last_episode_num+1),
-    #         global_step=steps)
-    #     _epi_length = np.array([i.length for i in _active_epi])
-    #     _epi_rewards = np.array([i.episode_total_reward for i in _active_epi])
-    #     self.writer.add_histogram(
-    #         tag="{0}_replay/epi_length".format(self._tag),
-    #         values=_epi_length,
-    #         global_step=steps)
-    #     self.writer.add_histogram(
-    #         tag="{0}_replay/epi_reward".format(self._tag),
-    #         values=_epi_rewards,
-    #         global_step=steps)
 
-    # def debug(self, steps, n_samples_tsne=1000):
-    #     """Understand how the replay buffer is composed.
-    #
-    #     NOTE: ignore `episodes[start_num]` and `episodes[end_num]`. I originally
-    #     used these to track the beginning and ending episodes for the loaded
-    #     samples from the teacher replay buffers, but it's not going to be
-    #     accurate as it takes the first and last episodes in the buffer, whereas
-    #     I add then in a 'snake' fashion where we branch out from a central
-    #     episode.
-    #     """
-    #     output_data = {
-    #         "episodes": {
-    #             "start_num":
-    #                 self._buffer[self._first_active_idx].episode_num,
-    #             "end_num": self._buffer[-1].episode_num,
-    #             "totals": self.total_episodes,
-    #             "total_actives": self.total_active_episodes,
-    #         },
-    #         "frames": {
-    #             "totals": self.total_active_trans,
-    #             "total_actives": self.__len__(),
-    #         },
-    #         "current_pos": self._current_pos,
-    #         "last_episode": {
-    #             "incomplete": self._current_episode is not None,
-    #             "length": self._buffer[-1].length,
-    #             "rewards": self._buffer[-1].episode_total_reward,
-    #         },
-    #     }
-    #     # self._debug(steps, output_data)
-    #     if "p" in self.info:
-    #         output_data["progress_scores"] = self.debug_progress(
-    #             steps, n_samples_tsne)
-    #     if self._debug_dir:
-    #         self.logger.debug(pformat(output_data))
-    #         self._debug_output[steps] = output_data
-    #         write_dict(self._debug_output, self._debug_dir, "summary")
-    #     else:
-    #         return output_data
-    #
-    # def _debug_progress(self, _output, steps, n_samples_tsne):
-    #     self.writer.add_histogram(
-    #         tag="{0}/progress_scores".format(self._tag),
-    #         values=self.info["progress_scores"],
-    #         global_step=steps)
-    #     self.writer.add_histogram(
-    #         tag="{0}/progress_scores_abs".format(self._tag),
-    #         values=self.info["_progress_scores"],
-    #         global_step=steps)
-    #     self.writer.add_scalar(
-    #         tag="{0}/p_perplexity".format(self._tag),
-    #         scalar_value=_output["perplexity"],
-    #         global_step=steps)
-    #     # sample with the extreme values
-    #     progrss_scores_idx = self.info["_progress_scores"].argsort()
-    #     _mid_point = int(len(progrss_scores_idx) / 2)
-    #     _left_mid_point = _mid_point - int(n_samples_tsne / 2)
-    #     _right_mid_point = _mid_point + int(n_samples_tsne / 2)
-    #     tsne_sample_idx = progrss_scores_idx[
-    #         np.r_[0:n_samples_tsne, _left_mid_point:_right_mid_point,
-    #         (-n_samples_tsne):0]]
-    #     _transitions = generate_top_transitions_grid(
-    #         n=4, sorted_index=progrss_scores_idx, replay=self,
-    #         num_steps=4, top=True)
-    #     self.writer.add_image(
-    #         tag="{0}/top_progress_scores".format(self._tag),
-    #         img_tensor=vutils.make_grid(torch.from_numpy(_transitions),
-    #                                     normalize=True, scale_each=True),
-    #         global_step=steps)
-    #     _transitions = generate_top_transitions_grid(
-    #         n=4, sorted_index=progrss_scores_idx, replay=self,
-    #         num_steps=4, top=False)
-    #     self.writer.add_image(
-    #         tag="{0}/bottom_progress_scores".format(self._tag),
-    #         img_tensor=vutils.make_grid(torch.from_numpy(_transitions),
-    #                                     normalize=True, scale_each=True),
-    #         global_step=steps)
-    #     _tsne_plot = np.transpose(
-    #         plot_tsne(sample_index=tsne_sample_idx, replay=self),
-    #         (2, 0, 1)) / 260.0
-    #     self.writer.add_image(
-    #         tag="{0}/tsne".format(self._tag),
-    #         img_tensor=torch.from_numpy(_tsne_plot),
-    #         global_step=steps)
-    #
-    # def debug_progress(self, steps, n_samples_tsne=1000):
-    #     _output = {
-    #         "perplexity": relative_perplexity(self.info["p"]),
-    #         "mean_progress_scores": self.info["progress_scores"].mean(),
-    #     }
-    #     # self._debug_progress(_output, steps, n_samples_tsne)
-    #     return _output
+
+class Demonstrations(object):
+    def __init__(self, returns, demonstrations, offset, width):
+        """
+        Helper class for ZPDExperienceReplay. Holds demonstrations and implements 
+        f_select function
+        """
+        self.returns = np.array(returns)
+        self.demonstrations = demonstrations
+        self.offset = offset
+        self.width = width
+        assert self.width >= 0
+
+    def select(self, r):
+        """
+        Returns index of demonstration with reward closest to r, plus offset
+        
+        :param r the reward of the agent
+        """
+
+        ind_match = np.argmin(np.abs(self.returns - r))
+        ind_center = ind_match + self.offset
+        ind_center = max(0, ind_center) # ensure we are indexing a non-negative index
+        
+        start_ind = ind_center - self.width
+        if start_ind < 0:
+            shift_amt = abs(start_ind)
+            start_ind = 0 
+            end_ind = ind_center + self.width + shift_amt
+        else:
+            end_ind = ind_center + self.width
+
+        # +1 is because python slices are end-exclusive
+        return self.demonstrations[start_ind:end_ind+1]
+
+
+class ZPDExperienceReplay(object):
+    """
+    Class that holds the two replay buffers, one for human demonstrations, one for the agents own experience
+
+    will behave like ExperienceReplay in dqn.py and main.py (where it is called)
+    """
+
+    def __init__(self, capacity, capacity_dem,  init_cap, init_cap_dem, frame_stack, gamma, tag, root, offset, width, mix_ratio):
+        # replay for agent 
+        self.exp_replay = ExperienceReplay(capacity, init_cap, frame_stack, gamma, tag) 
+
+        # replay for demonstrations 
+        self.dem_replay = ExperienceReplay(capacity_dem, init_cap_dem, frame_stack, gamma, tag) 
+
+        # load in demonstrations
+        returns, demonstrations = load_demonstrations(root)
+
+        # set up demonstrations object
+        self.demonstrations = Demonstrations(returns, demonstrations, offset, width)
+
+        # the ratio of demonstrations transitions to experience transitions in mini-batches
+        self.mix_ratio = mix_ratio
+
+        # average reward of agent (over some number of episodes)
+        self.rs = []
+        self.avg_r = 0
+
+
+    def sample(self, batch_size, num_steps):
+        dem_batch_size = int(batch_size * self.mix_ratio)
+        exp_batch_size = batch_size - dem_batch_size
+
+        # populate self.dem_replay
+        demonstrations = self.demonstrations.select(self.avg_r)
+
+        for trajectory in demonstrations:
+            self.dem_replay.add_episode(trajectory)
+
+        dem_samples = self.dem_replay.sample(batch_size=dem_batch_size, num_steps=num_steps, no_stack=True)
+        exp_samples = self.exp_replay.sample(batch_size=exp_batch_size, num_steps=num_steps, no_stack=True)
+
+        # evict all from dem_replay
+        self.dem_replay.evict_all() 
+        assert len(self.dem_replay._buffer) == 0
+
+        return merge_transitions_xp(dem_samples+exp_samples)
+        
+        
+    def add_one_transition(self, transition):
+        self.exp_replay.add_one_transition(transition)
+
+
+    def update_avg_reward(self, new_r):
+        self.rs.pop(0)
+        self.rs.append(new_r)
+        self.avg_r = np.average(self.rs)
+
 
 
 class ExperienceSource:
-
-    def __init__(self, env, agent, episode_per_epi, max_episodes):
+    def __init__(self, env, agent, episode_per_epi):
         """
         `ExperienceSource` is an iterable that integrates environment and agent.
         In train/test processes, we call the `next` for stepping purposes.
@@ -461,8 +472,8 @@ class ExperienceSource:
         self.mean_reward = None
         self.latest_speed = None
         self.latest_reward = None
-        self.max_episodes = max_episodes
-        self.pbar = tqdm(total=max_episodes)
+
+        
 
     def __iter__(self):
         """THIS is what calls `finish_episode` with `save_tag`.
@@ -487,6 +498,11 @@ class ExperienceSource:
                                     action=action, reward=self.env.env_rew,
                                     done=self.env.env_done)
 
+
+
+            # if  > self.max_steps: # stopping condition
+            #         yield None
+            # else:
             yield transition
             # ------------------------------------------------------------------
             # If env (either train or test) has an episode which just finished,
@@ -500,7 +516,7 @@ class ExperienceSource:
             # this is called, we start here to check for if we lost a life.
             # ------------------------------------------------------------------
             if self.env.env_done:
-                self.pbar.update(1)
+             
                 if self.episode_per_epi:
                     save_tag = False #self.env.get_num_lives() % self.episode_per_epi == 0 #Revan: I changed this to never save
                 else:
@@ -512,8 +528,7 @@ class ExperienceSource:
                 self.latest_speed = self.env.speed
                 self.mean_reward = self.env.mean_rew
 
-                if self.env.get_num_episodes() > self.max_episodes: # stopping condition
-                    yield None
+               
 
 
     def pop_latest(self):

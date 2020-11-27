@@ -24,3 +24,4 @@ def merge_transitions_xp(transitions):
         _transitions.done.append(int(transition.done))
         _transitions.weight.append(transition.weight)
     return _transitions
+

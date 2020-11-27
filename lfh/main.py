@@ -6,6 +6,7 @@ import os
 import argparse
 import logging
 import time
+from tqdm import tqdm
 from lfh.utils.config import Configurations
 from lfh.utils.setup import cuda_config, set_all_seeds
 from lfh.utils.io import write_dict, load_demonstrations
@@ -14,7 +15,7 @@ from lfh.utils.logger import setup_logger
 from lfh.environment.atari_wrappers import make_env
 import torch.multiprocessing as mp
 from tensorboardX import SummaryWriter
-from lfh.replay.experience import ExperienceReplay, ExperienceSource
+from lfh.replay.experience import ExperienceReplay, ExperienceSource, ZPDExperienceReplay
 from lfh.optimizer import Optimizer
 from lfh.agent.dqn import DQNTrainAgent
 from lfh.environment.setup import Environment
@@ -59,9 +60,6 @@ def get_true_rew(monitor_dir):
 
 
 def main(params):
-
-    #load_demonstrations(args["demonstrations_dir"])
-        
     # Remap the gpu devices if using gpu
     if cuda_config(gpu=params.params["gpu"]["enabled"],
                    gpu_id=params.params["gpu"]["id"]):
@@ -113,13 +111,27 @@ def main(params):
 
     # Initialized replay buffer. Not quite like OpenAI, seems to operate at
     # another 'granularity'; that of episodes, in addition to transitions?
-    replay_memory = ExperienceReplay(
-        #writer=writer,
+    # replay_memory = ExperienceReplay(
+    #     #writer=writer,
+    #     capacity=params["replay"]["size"],
+    #     init_cap=params["replay"]["initial"],
+    #     frame_stack=params["env"]["frame_stack"],
+    #     gamma=params["train"]["gamma"], tag="train",
+    #     debug_dir=os.path.join(params["log"]["dir"], "learner_replay"))
+
+    replay_memory = ZPDExperienceReplay(
         capacity=params["replay"]["size"],
+        capacity_dem=1000,  
         init_cap=params["replay"]["initial"],
-        frame_stack=params["env"]["frame_stack"],
-        gamma=params["train"]["gamma"], tag="train",
-        debug_dir=os.path.join(params["log"]["dir"], "learner_replay"))
+        init_cap_dem=100, 
+        frame_stack=params["env"]["frame_stack"], 
+        gamma=params["train"]["gamma"],
+        tag="train",
+        root="..\Demonstrations\BreakoutDemonstrations", 
+        offset=1, 
+        width=2, 
+        mix_ratio=1/4)
+
 
     # Initialized optimizer with decaying `lr_schedule` like OpenAI does.
     opt = Optimizer(net=model, opt_params=params["opt"],
@@ -153,6 +165,7 @@ def main(params):
     avg_w = params["env"]["avg_window"]
     matched_list = None
     test_match = False
+    max_steps = 2000000
 
     # exp_queue = mp.Queue(maxsize=params["train"]['train_freq_per_step'] * 2)
 
@@ -161,43 +174,47 @@ def main(params):
                             train=True, logger=logger, seed=params["seed"],)
 
     exp_source = ExperienceSource(env=train_env, agent=agent,
-                                  episode_per_epi=params["log"]["episode_per_epi"], max_episodes=10000)
+                                  episode_per_epi=params["log"]["episode_per_epi"])
     exp_source_iter = iter(exp_source)
     # exp_queue.put(None)
+    pbar = tqdm(total=max_steps)
 
     while not _end:
         for _ in range(params["train"]['train_freq_per_step']): # for number of training iter per step
-        
+            
+            # stoppping condition
+            if steps >= max_steps:
+                _end = True
+                break
+
             steps += 1
-            try:
-                exp = next(exp_source_iter)    
-            except:
-                pass
-    
+            pbar.update(1)
+            exp = next(exp_source_iter)    
+
+            # if exp is None:
+            #     _end = True
+            #     break
 
             rewards, mean_rewards, speed = exp_source.pop_latest()
             
             if rewards is not None: # only happens at end of an episode
                 _play_rewards.append(rewards)
-           
-            if exp is None:
-                _end = True
-                break
-   
+        
             replay_memory.add_one_transition(exp) # add transition to ERB
 
         # Update time
         # Exit early, ignore training, or finish training.
         # if perform_bad_exit_early(params, steps, _play_rewards):
         #     break
-        if len(replay_memory) < params["replay"]['initial']: # to make sure there are enough steps in the replay buffer
-            continue
+        
         if _end:
-          
             write_dict(dict_object=snapshots_summary,
                        dir_path=params["log"]["dir_snapshots"],
                        file_name="snapshots_summary")
             break
+        if len(replay_memory.exp_replay) < params["replay"]['initial']: # to make sure there are enough steps in the replay buffer
+            continue
+
 
         # For teacher-only, if matched to something. Save snapshot. We can use
         # to check if saved snapshots 'match' the teacher snapshot.  The other
