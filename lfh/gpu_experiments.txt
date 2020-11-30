@@ -1,4 +1,4 @@
-python gpu_test.py
-python gpu_test.py
-python gpu_test.py
-python gpu_test.py
+python gpu_test.py >> out.txt
+python gpu_test.py >> out.txt
+python gpu_test.py >> out.txt
+python gpu_test.py >> out.txt
