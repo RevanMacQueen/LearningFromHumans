@@ -14,25 +14,15 @@ from lfh.utils.train import init_atari_model
 from lfh.utils.logger import setup_logger
 from lfh.environment.atari_wrappers import make_env
 import torch.multiprocessing as mp
-from tensorboardX import SummaryWriter
+# from tensorboardX import SummaryWriter
 from lfh.replay.experience import ExperienceReplay, ExperienceSource, ZPDExperienceReplay,UnsequencedExperienceReplay
 from lfh.optimizer import Optimizer
 from lfh.agent.dqn import DQNTrainAgent
 from lfh.environment.setup import Environment
 from lfh.policy import GreedyEpsilonPolicy
-import cProfile
-from pprint import pformat
 import numpy as np
 from lfh.processes import play, test
 from pathlib import Path
-
-def main_profiler(params):
-    """
-    A similar 'roundabout' procedure is done in training when calling the play
-    and test methods: it is actually called through the cProfile profiler.
-    """
-    pth = os.path.join(params.params["log"]["dir"], 'main.prof')
-    cProfile.runctx('main(params)', globals(), locals(), pth)
 
 
 def get_true_rew(monitor_dir):
@@ -42,6 +32,8 @@ def get_true_rew(monitor_dir):
 
 
 def main(params):
+
+    return 
     # Remap the gpu devices if using gpu
     if cuda_config(gpu=params.params["gpu"]["enabled"],
                    gpu_id=params.params["gpu"]["id"]):
