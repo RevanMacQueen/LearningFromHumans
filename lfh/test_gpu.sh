@@ -4,5 +4,6 @@
 #SBATCH --time=00:00:05
 #SBATCH --mem=2G 
 #SBATCH --gres=gpu:1 
+#SBATCH --output=slurm/%x-%j.out
 
 head -n $SLURM_ARRAY_TASK_ID gpu_experiments.txt | tail -n 1
