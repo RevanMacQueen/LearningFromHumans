@@ -6,8 +6,9 @@ import logging
 from pathlib import Path
 
 # from lfh.envs.atari import make_env
-from lfh.envs.wrapper import Environment
-from lfh.replay.base import ExperienceReplay
+from lfh.agent.rainbow import replace_with_rbw_cfg
+from lfh.environment.setup import Environment
+from lfh.replay.experience import ExperienceReplay
 from lfh.replay.transition import Transition
 from lfh.utils.config import Configurations
 from definitions import ROOT_DIR
@@ -143,7 +144,11 @@ if __name__ == "__main__":
     #             clip_rewards=params.params["env"]["clip_rewards"],
     #             frame_stack=params.params["env"]["frame_stack"],
     #             )
-    
+
+    if params.rbw_config is not None:
+        # Here we replace rainbow configs with params
+        params.params = replace_with_rbw_cfg(params)
+
     wrapper_env = Environment(params.params['env'], params.params['log'],
                               logger=logger,
                               seed=params.exp_config['seed'],

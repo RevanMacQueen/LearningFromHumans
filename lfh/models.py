@@ -1,11 +1,11 @@
 import torch.nn as nn
+import lfh
 from lfh.utils.variables import create_var
 import math
-import torch.nn.functional as func
+import torch.nn.functional as F
 import torch
 import numpy as np
 from lfh.utils.variables import create_batch
-import lfh.utils.train
 from lfh.utils.math import softmax_deepmind as convert_to_dist
 from lfh.optimizer import Optimizer
 
@@ -80,16 +80,99 @@ class AtariNet(nn.Module):
         """
         _batch_size = x.size(0)
         x = x.float() / 255.0
-        x = func.relu(self.conv1(x))
-        x = func.relu(self.conv2(x))
-        x = func.relu(self.conv3(x))
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        x = F.relu(self.conv3(x))
         x = x.view(_batch_size, -1)
-        x = func.relu(self.fc4(x))
+        x = F.relu(self.fc4(x))
         if activation:
             return self.fc5(x), x
         else:
             return self.fc5(x)
 
+
+# Factorised NoisyLinear layer with bias
+class NoisyLinear(nn.Module):
+    def __init__(self, in_features, out_features, std_init=0.5):
+        super(NoisyLinear, self).__init__()
+        self.in_features = in_features
+        self.out_features = out_features
+        self.std_init = std_init
+        self.weight_mu = nn.Parameter(torch.empty(out_features, in_features))
+        self.weight_sigma = nn.Parameter(torch.empty(out_features, in_features))
+        self.register_buffer('weight_epsilon', torch.empty(out_features, in_features))
+        self.bias_mu = nn.Parameter(torch.empty(out_features))
+        self.bias_sigma = nn.Parameter(torch.empty(out_features))
+        self.register_buffer('bias_epsilon', torch.empty(out_features))
+        self.reset_parameters()
+        self.reset_noise()
+
+    def reset_parameters(self):
+        mu_range = 1 / math.sqrt(self.in_features)
+        self.weight_mu.data.uniform_(-mu_range, mu_range)
+        self.weight_sigma.data.fill_(self.std_init / math.sqrt(self.in_features))
+        self.bias_mu.data.uniform_(-mu_range, mu_range)
+        self.bias_sigma.data.fill_(self.std_init / math.sqrt(self.out_features))
+
+    def _scale_noise(self, size):
+        x = torch.randn(size, device=self.weight_mu.device)
+        return x.sign().mul_(x.abs().sqrt_())
+
+    def reset_noise(self):
+        epsilon_in = self._scale_noise(self.in_features)
+        epsilon_out = self._scale_noise(self.out_features)
+        self.weight_epsilon.copy_(epsilon_out.ger(epsilon_in))
+        self.bias_epsilon.copy_(epsilon_out)
+
+    def forward(self, input):
+        if self.training:
+            return F.linear(input, self.weight_mu + self.weight_sigma * self.weight_epsilon, self.bias_mu + self.bias_sigma * self.bias_epsilon)
+        else:
+            return F.linear(input, self.weight_mu, self.bias_mu)
+
+
+class RainbowDQN(nn.Module):
+    def __init__(self, args, action_space):
+        super(RainbowDQN, self).__init__()
+        self.atoms = args.atoms
+        self.action_space = action_space
+
+        if args.architecture == 'canonical':
+            self.convs = nn.Sequential(nn.Conv2d(args.history_length, 32, 8, stride=4, padding=0), nn.ReLU(),
+                                       nn.Conv2d(32, 64, 4, stride=2, padding=0), nn.ReLU(),
+                                       nn.Conv2d(64, 64, 3, stride=1, padding=0), nn.ReLU())
+            self.conv_output_size = 3136
+        elif args.architecture == 'data_efficient':
+            self.convs = nn.Sequential(nn.Conv2d(args.history_length, 32, 5, stride=5, padding=0), nn.ReLU(),
+                                       nn.Conv2d(32, 64, 5, stride=5, padding=0), nn.ReLU())
+            self.conv_output_size = 576
+        self.fc_h_v = NoisyLinear(self.conv_output_size, args.hidden_size, std_init=args.noisy_std)
+        self.fc_h_a = NoisyLinear(self.conv_output_size, args.hidden_size, std_init=args.noisy_std)
+        self.fc_z_v = NoisyLinear(args.hidden_size, self.atoms, std_init=args.noisy_std)
+        self.fc_z_a = NoisyLinear(args.hidden_size, action_space * self.atoms, std_init=args.noisy_std)
+
+    def init_weight(self):
+        pass
+
+    def forward(self, x, log=False):
+        x = x.float() / 255.0
+        x = self.convs(x)
+        x = x.view(-1, self.conv_output_size)
+        v = self.fc_z_v(F.relu(self.fc_h_v(x)))  # Value stream
+        a = self.fc_z_a(F.relu(self.fc_h_a(x)))  # Advantage stream
+        v, a = v.view(-1, 1, self.atoms), a.view(-1, self.action_space, self.atoms)
+        q = v + a - a.mean(1, keepdim=True)  # Combine streams
+        if log:  # Use log softmax for numerical stability
+            q = F.log_softmax(q, dim=2)  # Log probabilities with action over second dimension
+        else:
+            q = F.softmax(q, dim=2)  # Probabilities with action over second dimension
+        return q
+
+    # TODO: Include this in the training loop
+    def reset_noise(self):
+        for name, module in self.named_children():
+            if 'fc' in name:
+                module.reset_noise()
 
 class AtariProgressNet(nn.Module):
     """D: model for teacher, with capability for computing progress scores.
@@ -285,11 +368,11 @@ class AtariProgressNet(nn.Module):
             assert len(self.lower_bias) == 0
         _batch_size = x.size(0)
         x = x.float() / 255.0
-        x = func.relu(self.conv1[idx](x))
-        x = func.relu(self.conv2[idx](x))
-        x = func.relu(self.conv3[idx](x))
+        x = F.relu(self.conv1[idx](x))
+        x = F.relu(self.conv2[idx](x))
+        x = F.relu(self.conv3[idx](x))
         x = x.view(_batch_size, -1)
-        x = func.relu(self.fc4[idx](x))
+        x = F.relu(self.fc4[idx](x))
         if activation:
             return self.fc5[idx](x), x
         else:
@@ -340,7 +423,7 @@ class AtariProgressNet(nn.Module):
                     layer[1](self.lower_nodes[i])
             x.register_hook(self.save_gradient(i+1))
             if i in self._relu_layer_idx:
-                x = func.relu(x)
+                x = F.relu(x)
             if i == len(self._layers) - 2 and activation:
                 _activation = x
         if activation:
@@ -386,10 +469,10 @@ class AtariProgressNet(nn.Module):
             transitions=transitions, gpu=self._gpu_params["enabled"],
             gpu_id=self._gpu_params["id"], gpu_async=self._gpu_params["async"],
             requires_grad=True)
-        qs, qs_full = dqn.utils.train.get_qs_(
+        qs, qs_full = lfh.utils.train.get_qs_(
             self, states=states, actions=actions, upper_forward=naive)
-        activations = dqn.utils.train.get_activation(self, states, upper=True)
-        target_qs = dqn.utils.train.get_qs_target(
+        activations = lfh.utils.train.get_activation(self, states, upper=True)
+        target_qs = lfh.utils.train.get_qs_target(
             target_net=self, net=self, next_states=next_states,
             rewards=rewards, dones=dones, gamma=self._train_params["gamma"],
             num_steps=self._train_params["num_steps"], double_dqn=True)

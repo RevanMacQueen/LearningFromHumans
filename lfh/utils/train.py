@@ -1,7 +1,8 @@
 import numpy as np
 from scipy import signal
-from lfh.models import AtariNet, AtariProgressNet
+from lfh.models import AtariNet, AtariProgressNet, RainbowDQN
 from lfh.utils.variables import cuda, create_var
+from lfh.utils.config import Bunch
 from torch import nn
 
 
@@ -230,15 +231,18 @@ def trajectory_discount(x, gamma):
     return signal.lfilter([1], [1, -gamma], x[::-1], axis=0)[::-1]
 
 
-def init_atari_model(obs_space, num_actions, hidden_size, gpu, gpu_id):
+def init_atari_model(obs_space, num_actions, hidden_size, gpu, gpu_id, rbw_config=None):
     assert isinstance(gpu, bool)
     assert isinstance(gpu_id, int) and gpu_id >= 0
     assert isinstance(num_actions, int) and num_actions >= 0
     assert isinstance(hidden_size, int) and hidden_size >= 0
     assert isinstance(obs_space, list) or isinstance(obs_space, tuple)
-
-    _model = AtariNet(obs_space=tuple(obs_space), num_actions=num_actions,
-                      hidden_size=hidden_size)
+    if rbw_config is not None:
+        rbw_config_bunched = Bunch(rbw_config)
+        _model = RainbowDQN(rbw_config_bunched, num_actions)
+    else:
+        _model = AtariNet(obs_space=tuple(obs_space), num_actions=num_actions,
+                          hidden_size=hidden_size)
     _model = cuda(x=_model, gpu=gpu, gpu_id=gpu_id)
     return _model
 

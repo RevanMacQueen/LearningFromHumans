@@ -25,6 +25,11 @@ def convert_str_to_type(value, type_str):
         return None
 
 
+class Bunch(object):
+    def __init__(self, adict):
+        self.__dict__.update(adict)
+
+
 class Configurations:
 
     def __init__(self, params, note):
@@ -50,6 +55,10 @@ class Configurations:
 
         if len(note) > 0:
             note = "_" + note.replace(" ", "_").lower()
+
+        self.rbw_config = None
+        if params.rainbow:
+            self.rbw_config = read_json(params.exp_name, file_name='rainbow_settings')
 
         # D: extra stuff for more scalable logging, also check if teaching.
         date = '{}'.format(datetime.datetime.now().strftime('%Y-%m-%d-%H-%M'))

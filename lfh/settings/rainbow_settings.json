@@ -1,0 +1,21 @@
+{
+  "T_max": 200000,
+  "learn_start": 1600,
+  "memory_capacity": 200000,
+  "replay_frequency": 1,
+  "multi_step": 20,
+  "architecture": "data_efficient",
+  "hidden_size": 256,
+  "learning_rate": 0.0001,
+  "adam_eps": 1.5e-4,
+  "history_length": 4,
+  "noisy_std": 0.1,
+  "atoms": 51,
+  "V_min": -10,
+  "V_max": 10,
+  "discount": 0.99,
+  "target_update": 8000,
+  "reward_clip": 1,
+  "batch_size": 32,
+  "norm_clip": 10
+}

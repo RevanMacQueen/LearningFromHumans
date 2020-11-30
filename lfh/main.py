@@ -11,12 +11,13 @@ from lfh.utils.setup import cuda_config, set_all_seeds
 from lfh.utils.io import write_dict, load_demonstrations
 from lfh.utils.train import init_atari_model
 from lfh.utils.logger import setup_logger
+from lfh.utils.config import Bunch
 from lfh.environment.atari_wrappers import make_env
 import torch.multiprocessing as mp
-from tensorboardX import SummaryWriter
 from lfh.replay.experience import ExperienceReplay, ExperienceSource
 from lfh.optimizer import Optimizer
 from lfh.agent.dqn import DQNTrainAgent
+from lfh.agent.rainbow import RainbowAgent
 from lfh.environment.setup import Environment
 # from lfh.teacher.teacher_centers import MultiTeacherTeachingCenter
 # from lfh.utils.debug import generate_debug_msg
@@ -94,6 +95,7 @@ def main(params):
     params.params["env"]["total_lives"] = _env.unwrapped.ale.lives()
 
     # Output all configurations
+    original_params = params
     params = params.dump()
     set_all_seeds(seed=params["seed"], gpu=params["gpu"]["enabled"])
 
@@ -103,13 +105,11 @@ def main(params):
         num_actions=params["env"]["num_actions"],
         hidden_size=params["train"]["hidden_size"],
         gpu=params["gpu"]["enabled"],
-        gpu_id=params["gpu"]["id"])
+        gpu_id=params["gpu"]["id"],
+        rbw_config=original_params.rbw_config
+    )
     model.init_weight()
     model.share_memory()
-
-    # Initialize TensorBoard writer for visualization purposes
-    # writer = SummaryWriter(log_dir=params["log"]["dir"],
-    #                        comment="-" + params["env"]['name'])
 
     # Initialized replay buffer. Not quite like OpenAI, seems to operate at
     # another 'granularity'; that of episodes, in addition to transitions?
@@ -122,6 +122,7 @@ def main(params):
         debug_dir=os.path.join(params["log"]["dir"], "learner_replay"))
 
     # Initialized optimizer with decaying `lr_schedule` like OpenAI does.
+    # TODO: make sure this is the same as the Rainbow implementation.
     opt = Optimizer(net=model, opt_params=params["opt"],
                     max_num_steps=params["env"]["max_num_steps"],
                     train_freq_per_step=params["train"]["train_freq_per_step"])
@@ -132,11 +133,20 @@ def main(params):
         max_num_steps=params["env"]["max_num_steps"],
         train_freq_per_step=params["train"]["train_freq_per_step"])
 
-    agent = DQNTrainAgent(net=model, gpu_params=params['gpu'],
-                          log_params=params["log"],
-                          opt=opt, train_params=params["train"],
-                          replay=replay_memory, policy=policy, teacher=None,
-                          avg_window=params["env"]["avg_window"])
+    if original_params.rbw_config is not None:
+        rbw_config_bunched = Bunch(original_params.rbw_config)
+        agent = RainbowAgent(net=model, args=rbw_config_bunched, action_space=params["env"]["num_actions"],
+                             gpu_params=params['gpu'],
+                             log_params=params["log"],
+                             opt=opt, train_params=params["train"],
+                             replay=replay_memory, policy=policy, teacher=None,
+                             avg_window=params["env"]["avg_window"])
+    else:
+        agent = DQNTrainAgent(net=model, gpu_params=params['gpu'],
+                              log_params=params["log"],
+                              opt=opt, train_params=params["train"],
+                              replay=replay_memory, policy=policy, teacher=None,
+                              avg_window=params["env"]["avg_window"])
 
     # Finally, training. See `global_settings` and other experiment files.
     snapshots_summary = {}
@@ -169,10 +179,10 @@ def main(params):
         for _ in range(params["train"]['train_freq_per_step']): # for number of training iter per step
         
             steps += 1
-            try:
-                exp = next(exp_source_iter)    
-            except:
-                pass
+            # try:
+            exp = next(exp_source_iter)
+            # except:
+            #     pass
     
 
             rewards, mean_rewards, speed = exp_source.pop_latest()
@@ -243,6 +253,7 @@ if __name__ == '__main__':
     parser.add_argument("--exp-name", type=str, default='settings',
                         help='directory from which to load experiment settings')
     parser.add_argument("--profile", action='store_true', help='whether to run the profiler')
+    parser.add_argument("--rainbow", action='store_true', help='Do we use the rainbow agent?')
     params = parser.parse_args()
     _params = Configurations(params, note="")
 
