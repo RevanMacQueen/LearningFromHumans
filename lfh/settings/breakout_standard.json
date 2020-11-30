@@ -3,7 +3,7 @@
     "id": 0
   },
   "env": {
-    "max_num_steps": 6e6,
+    "max_num_steps": 2e6,
     "name": "BreakoutNoFrameskip-v4"
   },
   "log": {

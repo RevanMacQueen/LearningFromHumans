@@ -169,7 +169,7 @@ def load_demonstrations(root, plot = False):
     This code is gross but works for now
     '''
 
-    episode_ctr = 0 # counter for giving episodes unqiue IDs when saving
+    episode_ctr = 1 # counter for giving episode unique episode nums
 
     demonstrations = list()
     rewards = list()
@@ -182,7 +182,7 @@ def load_demonstrations(root, plot = False):
         for demonstration_id in os.listdir(demonstrator_path):
             demonstration_path = os.path.join(demonstrator_path,  demonstration_id)
             demonstration_path = os.path.join(demonstration_path,   "episodes")
-            episode_num = 1
+          
 
             for episode_dir in  os.listdir(demonstration_path): 
                 episode_path = os.path.join(demonstration_path, episode_dir)
@@ -204,6 +204,8 @@ def load_demonstrations(root, plot = False):
                         # first save in return_ordered_demononstrations in a subdirectory for the return. 
                         traj_return =  traj.episode_total_reward 
 
+
+                        traj.episode_num =  episode_ctr
                         demonstrations.append(traj)
                         rewards.append(traj_return)
 

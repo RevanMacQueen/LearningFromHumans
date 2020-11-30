@@ -106,6 +106,11 @@ class ExperienceReplay(object):
         _episode_num, _frame_num = self._frame_lookup[i]
         assert _episode_num in self._episode_lookup
         assert self._episode_lookup[_episode_num] >= self._first_active_idx
+
+
+
+
+
         return self._convert_episode_idx(_episode_num).sample_transition(
             idx=_frame_num, frame_stack=self._frame_stack,
             num_steps=num_steps, gamma=self._gamma, force=force)
@@ -225,8 +230,10 @@ class ExperienceReplay(object):
         """
         assert isinstance(episode, Episode)
         self._episode_lookup[episode.episode_num] = next_episode_idx
+        
         for i in range(episode.length):
             self._register_frame(episode.episode_num, i)
+
 
     def _add_one_episode(self, episode):
         """Add episode to the replay buffer and write debug message.
@@ -277,14 +284,6 @@ class ExperienceReplay(object):
         """
         Evict all episodes in the buffer
         """
-        # idx = 0
-        # while self.total_active_trans > 0:
-
-        #     if self._buffer[idx] is not None:
-        #         _old_episode_length = self._buffer[idx].length
-        #         self.total_active_trans -= _old_episode_length
-        #         self._buffer[idx] = None
-        #     idx += 1
         self._buffer.clear()
         self._first_active_idx = 0
         self.total_active_trans = 0
@@ -359,48 +358,61 @@ class ExperienceReplay(object):
 
 
 class Demonstrations(object):
-    def __init__(self, returns, demonstrations, offset, width):
+    def __init__(self, returns, demonstrations, offset, radius):
         """
         Helper class for ZPDExperienceReplay. Holds demonstrations and implements 
         f_select function
         """
-        self.returns = np.array(returns)
-        self.demonstrations = demonstrations
+
+        self.returns, self.demonstrations = zip(*sorted(zip(returns, demonstrations),  key=lambda x: x[0]))
+        self.returns  = np.array(self.returns)
         self.offset = offset
-        self.width = width
-        assert self.width >= 0
+        self.radius = radius
+
+        # maximum reward amongst all demonstrations
+        self.max_reward  = self.returns[-1]
+        assert self.radius >= 0
+
 
     def select(self, r):
         """
         Returns index of demonstration with reward closest to r, plus offset
         
-        :param r the reward of the agent
+        :param r the average reward of the agent over past 100 episodes
         """
 
         ind_match = np.argmin(np.abs(self.returns - r))
         ind_center = ind_match + self.offset
-        ind_center = max(0, ind_center) # ensure we are indexing a non-negative index
+        # ensure we are indexing a non-negative index
+        ind_center = max(0, ind_center) 
         
-        start_ind = ind_center - self.width
+        start_ind = ind_center - self.radius
         if start_ind < 0:
             shift_amt = abs(start_ind)
             start_ind = 0 
-            end_ind = ind_center + self.width + shift_amt
+            end_ind = ind_center + self.radius + shift_amt
         else:
-            end_ind = ind_center + self.width
+            end_ind = ind_center + self.radius
 
         # +1 is because python slices are end-exclusive
         return self.demonstrations[start_ind:end_ind+1]
 
 
+    def get_all_demonstartions(self):
+        """
+        Returns all demonstrations
+        """
+        return self.demonstrations 
+
+
 class ZPDExperienceReplay(object):
     """
-    Class that holds the two replay buffers, one for human demonstrations, one for the agents own experience
-
-    will behave like ExperienceReplay in dqn.py and main.py (where it is called)
+    Class that holds the two replay buffers, one for human demonstrations, one for the agents own experience. 
+    Samples accoring to ZPD curriculum
+    Will behave like ExperienceReplay in dqn.py and main.py (where it is called)
     """
 
-    def __init__(self, capacity, capacity_dem,  init_cap, init_cap_dem, frame_stack, gamma, tag, root, offset, width, mix_ratio):
+    def __init__(self, capacity, capacity_dem,  init_cap, init_cap_dem, frame_stack, gamma, tag, root, offset, radius, mix_ratio, batch_size):
         # replay for agent 
         self.exp_replay = ExperienceReplay(capacity, init_cap, frame_stack, gamma, tag) 
 
@@ -410,8 +422,12 @@ class ZPDExperienceReplay(object):
         # load in demonstrations
         returns, demonstrations = load_demonstrations(root)
 
+        # make sure the lower bound for number of trajectories in a window is sufficiently large
+        assert min([d.length for d in demonstrations])*(radius*2+1) >= mix_ratio*batch_size
+        assert radius >= 0
+
         # set up demonstrations object
-        self.demonstrations = Demonstrations(returns, demonstrations, offset, width)
+        self.demonstrations = Demonstrations(returns, demonstrations, offset, radius)
 
         # the ratio of demonstrations transitions to experience transitions in mini-batches
         self.mix_ratio = mix_ratio
@@ -420,23 +436,45 @@ class ZPDExperienceReplay(object):
         self.rs = []
         self.avg_r = 0
 
+        # coefficient for linear anneal once learner has surpassed demonstrations
+        self.anneal_coeff = 0.95
+
+
+    def __len__(self):
+        return len(self.exp_replay)
+
 
     def sample(self, batch_size, num_steps):
-        dem_batch_size = int(batch_size * self.mix_ratio)
-        exp_batch_size = batch_size - dem_batch_size
+
+        # if learner has surpassed all demonstrations, anneal the number of demonstrations in 
+        # a mini-batch towards 0
+        if self.avg_r > self.demonstrations.max_reward:
+            dem_batch_size = int(batch_size * self.mix_ratio * self.anneal_coeff) 
+            self.anneal_coeff *= self.anneal_coeff
+        else:
+            dem_batch_size = int(batch_size * self.mix_ratio)
+
+        # remainder of mini-batch will be learners experience 
+        exp_batch_size = batch_size - dem_batch_size    
 
         # populate self.dem_replay
         demonstrations = self.demonstrations.select(self.avg_r)
 
+        # make sure we have enough transitions in the buffer
+        assert sum([trajectory.length for trajectory in demonstrations])  >= dem_batch_size
+
         for trajectory in demonstrations:
             self.dem_replay.add_episode(trajectory)
+        assert False
 
+        # sample from demonstrations
         dem_samples = self.dem_replay.sample(batch_size=dem_batch_size, num_steps=num_steps, no_stack=True)
-        exp_samples = self.exp_replay.sample(batch_size=exp_batch_size, num_steps=num_steps, no_stack=True)
 
         # evict all from dem_replay
         self.dem_replay.evict_all() 
         assert len(self.dem_replay._buffer) == 0
+
+        exp_samples = self.exp_replay.sample(batch_size=exp_batch_size, num_steps=num_steps, no_stack=True)
 
         return merge_transitions_xp(dem_samples+exp_samples)
         
@@ -446,7 +484,73 @@ class ZPDExperienceReplay(object):
 
 
     def update_avg_reward(self, new_r):
-        self.rs.pop(0)
+        if len(self.rs) >= 100:
+            self.rs.pop(0)
+        self.rs.append(new_r)
+        self.avg_r = np.average(self.rs)
+
+
+class UnsequencedExperienceReplay(object):
+    """
+    Class that holds the two replay buffers, one for human demonstrations, one for the agents own experience. 
+    human demonstrations are sampled without any sequence
+    Will behave like ExperienceReplay in dqn.py and main.py (where it is called)
+    """
+
+    def __init__(self, capacity, capacity_dem, init_cap, init_cap_dem, frame_stack, gamma, tag, root, mix_ratio):
+        # replay for agent 
+        self.exp_replay = ExperienceReplay(capacity, init_cap, frame_stack, gamma, tag) 
+
+        # replay for demonstrations 
+        self.dem_replay = ExperienceReplay(capacity_dem, init_cap_dem, frame_stack, gamma, tag) 
+
+        # load in demonstrations
+        rewards, demonstrations = load_demonstrations(root)
+        self.max_reward = sorted(rewards)[-1]
+        for trajectory in demonstrations:
+            self.dem_replay.add_episode(trajectory)
+
+        # the ratio of demonstrations transitions to experience transitions in mini-batches
+        self.mix_ratio = mix_ratio
+
+         # average reward of agent (over some number of episodes)
+        self.rs = []
+        self.avg_r = 0
+
+        # coefficient for linear anneal once learner has surpassed demonstrations
+        self.anneal_coeff = 0.95
+
+
+    def __len__(self):
+        return len(self.exp_replay)
+
+    def sample(self, batch_size, num_steps):
+
+        # if learner has surpassed all demonstrations, anneal the number of demonstrations in 
+        # a mini-batch towards 0
+        if self.avg_r >  self.max_reward:
+            dem_batch_size = int(batch_size * self.mix_ratio * self.anneal_coeff) 
+            self.anneal_coeff *= self.anneal_coeff
+        else:
+            dem_batch_size = int(batch_size * self.mix_ratio)
+
+        # remainder of mini-batch will be learners experience 
+        exp_batch_size = batch_size - dem_batch_size    
+        
+        # sample from demonstrations
+        dem_samples = self.dem_replay.sample(batch_size=dem_batch_size, num_steps=num_steps, no_stack=True)
+        exp_samples = self.exp_replay.sample(batch_size=exp_batch_size, num_steps=num_steps, no_stack=True)
+
+        return merge_transitions_xp(dem_samples+exp_samples)
+        
+        
+    def add_one_transition(self, transition):
+        self.exp_replay.add_one_transition(transition)
+
+
+    def update_avg_reward(self, new_r):
+        if len(self.rs) >= 100:
+            self.rs.pop(0)
         self.rs.append(new_r)
         self.avg_r = np.average(self.rs)
 
@@ -498,11 +602,6 @@ class ExperienceSource:
                                     action=action, reward=self.env.env_rew,
                                     done=self.env.env_done)
 
-
-
-            # if  > self.max_steps: # stopping condition
-            #         yield None
-            # else:
             yield transition
             # ------------------------------------------------------------------
             # If env (either train or test) has an episode which just finished,
@@ -529,8 +628,6 @@ class ExperienceSource:
                 self.mean_reward = self.env.mean_rew
 
                
-
-
     def pop_latest(self):
         r = self.latest_reward
         mr = self.mean_reward

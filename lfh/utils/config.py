@@ -38,8 +38,22 @@ class Configurations:
         self.exp_name = "_{}".format(params.exp_id)
         self.profile = params.profile
 
-        if "seed" not in self.exp_config:
+        # set random seed
+        if params.seed is not None:
+            self.exp_config["seed"] = params.seed
+        elif "seed" not in self.exp_config:
             self.exp_config["seed"] = random.randint(10, 100000)
+
+
+        self.exp_config["agent"] = params.agent
+
+        if params.agent == "uniform_zpd" or params.agent == "unseq_DDQN":
+            self.exp_config["zpd"] = {}
+            self.exp_config["zpd"]["offset"] = params.offset
+            self.exp_config["zpd"]["radius"] = params.radius
+            self.exp_config["zpd"]["mix_ratio"] = params.mix_ratio
+            self.exp_config["zpd"]["demonstrations_dir"] =  params.demonstrations_dir
+
 
         self.note = note
         self.params = jsonmerge.merge(

@@ -15,33 +15,16 @@ from lfh.utils.logger import setup_logger
 from lfh.environment.atari_wrappers import make_env
 import torch.multiprocessing as mp
 from tensorboardX import SummaryWriter
-from lfh.replay.experience import ExperienceReplay, ExperienceSource, ZPDExperienceReplay
+from lfh.replay.experience import ExperienceReplay, ExperienceSource, ZPDExperienceReplay,UnsequencedExperienceReplay
 from lfh.optimizer import Optimizer
 from lfh.agent.dqn import DQNTrainAgent
 from lfh.environment.setup import Environment
-# from lfh.teacher.teacher_centers import MultiTeacherTeachingCenter
-# from lfh.utils.debug import generate_debug_msg
 from lfh.policy import GreedyEpsilonPolicy
 import cProfile
 from pprint import pformat
 import numpy as np
 from lfh.processes import play, test
-# from lfh.utils.heuristics import perform_bad_exit_early
-# from lfh.environment import monitor
 from pathlib import Path
-# from lfh.envs.atari import make_env
-
-def get_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--exp-id", type=str, default="breakout_standard", help="ID of the experiment to run")
-    parser.add_argument("--exp-name", type=str, default='settings',
-                        help='directory from which to load experiment settings')
-    parser.add_argument("--profile", action='store_true', help='whether to run the profiler')
-    parser.add_argument("--demonstrations-dir", type=str, default='../Demonstrations/BreakoutDemonstrations/', help='directory containing demonstrations')
-
-    return vars(parser.parse_args())
-
-
 
 def main_profiler(params):
     """
@@ -58,7 +41,6 @@ def get_true_rew(monitor_dir):
     return true_rews
 
 
-
 def main(params):
     # Remap the gpu devices if using gpu
     if cuda_config(gpu=params.params["gpu"]["enabled"],
@@ -73,7 +55,6 @@ def main(params):
     logger = logging.getLogger("root")
     logger.info("Output directory is located at {0}."
                 .format(params.params["log"]["dir"]))
-
 
     # Set env to add stuff to `params['env']` -- we do NOT use this `_env` for
     # stepping; we create again in `dqn/processes.py` via `Environment` class.
@@ -105,33 +86,40 @@ def main(params):
     model.init_weight()
     model.share_memory()
 
-    # Initialize TensorBoard writer for visualization purposes
-    # writer = SummaryWriter(log_dir=params["log"]["dir"],
-    #                        comment="-" + params["env"]['name'])
-
-    # Initialized replay buffer. Not quite like OpenAI, seems to operate at
-    # another 'granularity'; that of episodes, in addition to transitions?
-    # replay_memory = ExperienceReplay(
-    #     #writer=writer,
-    #     capacity=params["replay"]["size"],
-    #     init_cap=params["replay"]["initial"],
-    #     frame_stack=params["env"]["frame_stack"],
-    #     gamma=params["train"]["gamma"], tag="train",
-    #     debug_dir=os.path.join(params["log"]["dir"], "learner_replay"))
-
-    replay_memory = ZPDExperienceReplay(
-        capacity=params["replay"]["size"],
-        capacity_dem=1000,  
-        init_cap=params["replay"]["initial"],
-        init_cap_dem=100, 
-        frame_stack=params["env"]["frame_stack"], 
-        gamma=params["train"]["gamma"],
-        tag="train",
-        root="..\Demonstrations\BreakoutDemonstrations", 
-        offset=1, 
-        width=2, 
-        mix_ratio=1/4)
-
+    if params["agent"] == "uniform_zpd":
+        replay_memory = ZPDExperienceReplay(
+            capacity=params["replay"]["size"],
+            capacity_dem=1e6, # uncessesarily large. we will never actually reach this capacity  
+            init_cap=params["replay"]["initial"],
+            init_cap_dem=1, # this doesn't matter for now. Maybe in the future we can use this
+            frame_stack=params["env"]["frame_stack"], 
+            gamma=params["train"]["gamma"],
+            tag="train",
+            root= params["zpd"]["demonstrations_dir"], 
+            offset=params["zpd"]["offset"], 
+            radius=params["zpd"]["radius"], 
+            mix_ratio=params["zpd"]["mix_ratio"],
+            batch_size=params["train"]["batch_size"])
+    elif params["agent"] == "DDQN":
+        replay_memory = ExperienceReplay(
+            capacity=params["replay"]["size"],
+            init_cap=params["replay"]["initial"],
+            frame_stack=params["env"]["frame_stack"],
+            gamma=params["train"]["gamma"], 
+            tag="train")     
+    elif params["agent"] == "unseq_DDQN":
+        replay_memory = UnsequencedExperienceReplay(
+            capacity=params["replay"]["size"],
+            capacity_dem=1e6, # uncessesarily large. we will never actually reach this capacity  
+            init_cap=params["replay"]["initial"],
+            init_cap_dem=1, # this doesn't matter for now. Maybe in the future we can use this
+            frame_stack=params["env"]["frame_stack"], 
+            gamma=params["train"]["gamma"],
+            tag="train",
+            root= params["zpd"]["demonstrations_dir"],
+            mix_ratio=params["zpd"]["mix_ratio"])
+    else:
+        raise NotImplementedError
 
     # Initialized optimizer with decaying `lr_schedule` like OpenAI does.
     opt = Optimizer(net=model, opt_params=params["opt"],
@@ -153,7 +141,6 @@ def main(params):
     # Finally, training. See `global_settings` and other experiment files.
     snapshots_summary = {}
     info_summary = {}
-    snapshot_number = 1
     _play_rewards = []  # clipped rewards
     _play_speeds = []
     _test_rewards = []  # clipped rewards
@@ -163,11 +150,7 @@ def main(params):
     num_true_episodes = 0
     time_start = time.time()
     avg_w = params["env"]["avg_window"]
-    matched_list = None
-    test_match = False
-    max_steps = 2000000
-
-    # exp_queue = mp.Queue(maxsize=params["train"]['train_freq_per_step'] * 2)
+    max_steps = params["env"]["max_num_steps"]
 
     # Initialize environment 
     train_env = Environment(env_params=params["env"], log_params=params["log"],
@@ -176,77 +159,43 @@ def main(params):
     exp_source = ExperienceSource(env=train_env, agent=agent,
                                   episode_per_epi=params["log"]["episode_per_epi"])
     exp_source_iter = iter(exp_source)
-    # exp_queue.put(None)
     pbar = tqdm(total=max_steps)
 
     while not _end:
         for _ in range(params["train"]['train_freq_per_step']): # for number of training iter per step
-            
             # stoppping condition
             if steps >= max_steps:
                 _end = True
                 break
-
             steps += 1
             pbar.update(1)
             exp = next(exp_source_iter)    
-
-            # if exp is None:
-            #     _end = True
-            #     break
-
             rewards, mean_rewards, speed = exp_source.pop_latest()
             
             if rewards is not None: # only happens at end of an episode
                 _play_rewards.append(rewards)
-        
-            replay_memory.add_one_transition(exp) # add transition to ERB
+                if params["agent"] != "DDQN":
+                    # update the average reward 
+                    replay_memory.update_avg_reward(rewards) 
+            # add transition to RB
+            replay_memory.add_one_transition(exp) 
 
-        # Update time
         # Exit early, ignore training, or finish training.
-        # if perform_bad_exit_early(params, steps, _play_rewards):
-        #     break
-        
         if _end:
             write_dict(dict_object=snapshots_summary,
                        dir_path=params["log"]["dir_snapshots"],
                        file_name="snapshots_summary")
             break
-        if len(replay_memory.exp_replay) < params["replay"]['initial']: # to make sure there are enough steps in the replay buffer
+        
+        
+        if len(replay_memory) < params["replay"]['initial']: # to make sure there are enough steps in the replay buffer
             continue
 
-
-        # For teacher-only, if matched to something. Save snapshot. We can use
-        # to check if saved snapshots 'match' the teacher snapshot.  The other
-        # snapshot saving is for later with training a single teacher.
-
-        # this might be where we add stuff for training with demonstrations
-
         # Weights should be synced among this and train/test processes.
-        # Called at every multiple of four, so steps = {0,4,8,12,...}.
+        # Called at every multiple of four, so steps = {0, 4, 8, 12, ...}.
         agent.train(steps=steps)
-
-        # Output stuff
-        # if steps % params["log"]['snapshot_per_step'] < \
-        #         params["train"]['train_freq_per_step'] and \
-        #         steps > params['log']['snapshot_min_step']:
-        #     rew_list = get_true_rew(params["log"]["dir"])
-        #     current_true_rew = np.mean(rew_list[-avg_w:])
-        #     current_clip_rew = np.mean(_play_rewards[-avg_w:])
-        #     agent.save_model(snapshot_number)
-        #     snapshots_summary[snapshot_number] = {
-        #         "clip_rew_life": current_clip_rew,
-        #         "true_rew_epis": current_true_rew,
-        #         "num_finished_epis": len(rew_list),
-        #         "steps": steps,
-        #     }
-        #     snapshot_number += 1
-        #     write_dict(dict_object=snapshots_summary,
-        #                dir_path=params["log"]["dir_snapshots"],
-        #                file_name="snapshots_summary")
         
     logger.info("Training complete!")
-
     np.save("returns", _play_rewards)
 
     
@@ -256,15 +205,21 @@ if __name__ == '__main__':
 
     # Read configurations from file
     parser = argparse.ArgumentParser()
-    parser.add_argument("exp_id", type=str, help="ID of the experiment to run")
+    parser.add_argument("--exp-id", type=str, default="breakout_standard", help="ID of the experiment to run")
     parser.add_argument("--exp-name", type=str, default='settings',
                         help='directory from which to load experiment settings')
     parser.add_argument("--profile", action='store_true', help='whether to run the profiler')
+    parser.add_argument("--demonstrations-dir", type=str, default='../Demonstrations/BreakoutDemonstrations/', help='directory containing demonstrations')
+
+    parser.add_argument("--agent", type=str, default="uniform_zpd", help="what agent to run 1. uniform_zpd 2. DDQN 3. unseq_DDQN")
+    parser.add_argument("--offset", type=int, default=1, help="offset for zpd window")
+    parser.add_argument("--radius", type=int, default=2, help="radius of zpd window")
+    parser.add_argument("--mix-ratio", type=float, default=1/4, help="ratio of demonstrations in the replay buffer")
+    parser.add_argument("--seed", type=int, help="random seed")
+
     params = parser.parse_args()
     _params = Configurations(params, note="")
 
-    # Include log directory names in the params
-    if params.profile:
-        main_profiler(_params)
-    else:
-        main(_params)
+    # Include log directory names in the param
+
+    main(_params)
