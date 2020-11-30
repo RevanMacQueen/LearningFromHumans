@@ -6,4 +6,4 @@
 #SBATCH --gres=gpu:1 
 #SBATCH --output=slurm/%x-%j.out
 
-head -n $SLURM_ARRAY_TASK_ID gpu_experiments.txt | tail -n 1
+eval $(head -n $SLURM_ARRAY_TASK_ID gpu_experiments.txt | tail -n 1)
