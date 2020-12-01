@@ -57,6 +57,10 @@ class ExperienceReplay(object):
                           "initialized".format(capacity))
 
     @property
+    def total_transitions(self):
+        return self.total_active_trans
+
+    @property
     def buffer(self):
         return self._buffer
 

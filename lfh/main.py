@@ -17,7 +17,7 @@ import torch.multiprocessing as mp
 from lfh.replay.experience import ExperienceReplay, ExperienceSource
 from lfh.optimizer import Optimizer
 from lfh.agent.dqn import DQNTrainAgent
-from lfh.agent.rainbow import RainbowAgent
+from lfh.agent.rainbow import RainbowAgent, replace_with_rbw_cfg
 from lfh.environment.setup import Environment
 # from lfh.teacher.teacher_centers import MultiTeacherTeachingCenter
 # from lfh.utils.debug import generate_debug_msg
@@ -93,6 +93,10 @@ def main(params):
         _env.unwrapped.get_action_meanings()
     params.params["env"]["obs_space"] = _env.observation_space.shape
     params.params["env"]["total_lives"] = _env.unwrapped.ale.lives()
+
+    if params.rbw_config is not None:
+        # Here we replace rainbow configs with params
+        params.params = replace_with_rbw_cfg(params)
 
     # Output all configurations
     original_params = params
@@ -200,8 +204,10 @@ def main(params):
         # Exit early, ignore training, or finish training.
         # if perform_bad_exit_early(params, steps, _play_rewards):
         #     break
-        if len(replay_memory) < params["replay"]['initial']: # to make sure there are enough steps in the replay buffer
-            continue
+        # if len(replay_memory) < params["replay"]['initial']: # to make sure there are enough steps in the replay buffer
+        if replay_memory.total_transitions < params["replay"]['initial']:  # to make sure there are enough steps in the replay buffer
+                continue
+
         if _end:
           
             write_dict(dict_object=snapshots_summary,
@@ -220,23 +226,23 @@ def main(params):
         agent.train(steps=steps)
 
         # Output stuff
-        # if steps % params["log"]['snapshot_per_step'] < \
-        #         params["train"]['train_freq_per_step'] and \
-        #         steps > params['log']['snapshot_min_step']:
-        #     rew_list = get_true_rew(params["log"]["dir"])
-        #     current_true_rew = np.mean(rew_list[-avg_w:])
-        #     current_clip_rew = np.mean(_play_rewards[-avg_w:])
-        #     agent.save_model(snapshot_number)
-        #     snapshots_summary[snapshot_number] = {
-        #         "clip_rew_life": current_clip_rew,
-        #         "true_rew_epis": current_true_rew,
-        #         "num_finished_epis": len(rew_list),
-        #         "steps": steps,
-        #     }
-        #     snapshot_number += 1
-        #     write_dict(dict_object=snapshots_summary,
-        #                dir_path=params["log"]["dir_snapshots"],
-        #                file_name="snapshots_summary")
+        if steps % params["log"]['snapshot_per_step'] < \
+                params["train"]['train_freq_per_step'] and \
+                steps > params['log']['snapshot_min_step']:
+            rew_list = get_true_rew(params["log"]["dir"])
+            current_true_rew = np.mean(rew_list[-avg_w:])
+            current_clip_rew = np.mean(_play_rewards[-avg_w:])
+            agent.save_model(snapshot_number)
+            snapshots_summary[snapshot_number] = {
+                "clip_rew_life": current_clip_rew,
+                "true_rew_epis": current_true_rew,
+                "num_finished_epis": len(rew_list),
+                "steps": steps,
+            }
+            snapshot_number += 1
+            write_dict(dict_object=snapshots_summary,
+                       dir_path=params["log"]["dir_snapshots"],
+                       file_name="snapshots_summary")
         
     logger.info("Training complete!")
 

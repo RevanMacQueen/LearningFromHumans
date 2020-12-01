@@ -26,6 +26,7 @@ def replace_with_rbw_cfg(params: Configurations):
     params.params["env"]["frame_stack"] = params.rbw_config["history_length"]
     params.params["train"]["gamma"] = params.rbw_config["discount"]
     params.params["train"]["target_sync_per_step"] = params.rbw_config["target_update"]
+    return params.params
 
 
 class RainbowAgent(DQNTrainAgent):
@@ -65,7 +66,7 @@ class RainbowAgent(DQNTrainAgent):
         self._target = None
         # self.target_net = DQN(args, self.action_space).to(device=args.device)
         self.target_net = copy.deepcopy(net).to(device=gpu_params['id'])
-        self.update_target_net()
+        self.sync_target(1)
         self.target_net.train()
         for param in self.target_net.parameters():
             param.requires_grad = False
@@ -103,7 +104,7 @@ class RainbowAgent(DQNTrainAgent):
             requires_grad=False)
         weights = self.get_weights(states, actions, transitions.weight)
 
-        nonterminals = not dones
+        nonterminals = 1 - dones
 
         # Calculate current state probabilities (online network noise already sampled)
         log_ps = self.online_net(states, log=True)  # Log probabilities log p(s_t, ·; θonline)
@@ -119,7 +120,7 @@ class RainbowAgent(DQNTrainAgent):
             pns_a = pns[range(self.batch_size), argmax_indices_ns]  # Double-Q probabilities p(s_t+n, argmax_a[(z, p(s_t+n, a; θonline))]; θtarget)
 
             # Compute Tz (Bellman operator T applied to z)
-            Tz = returns.unsqueeze(1) + nonterminals * (self.discount ** self.n) * self.support.unsqueeze(0)  # Tz = R^n + (γ^n)z (accounting for terminal states)
+            Tz = rewards.unsqueeze(1) + nonterminals.unsqueeze(-1) * (self.discount ** self.n) * self.support.unsqueeze(0)  # Tz = R^n + (γ^n)z (accounting for terminal states)
             Tz = Tz.clamp(min=self.Vmin, max=self.Vmax)  # Clamp between supported values
             # Compute L2 projection of Tz onto fixed support z
             b = (Tz - self.Vmin) / self.delta_z  # b = (Tz - Vmin) / Δz
@@ -129,7 +130,7 @@ class RainbowAgent(DQNTrainAgent):
             u[(l < (self.atoms - 1)) * (l == u)] += 1
 
             # Distribute probability of Tz
-            m = states.new_zeros(self.batch_size, self.atoms)
+            m = states.new_zeros(self.batch_size, self.atoms).float()
             offset = torch.linspace(0, ((self.batch_size - 1) * self.atoms), self.batch_size).unsqueeze(1).expand(self.batch_size, self.atoms).to(actions)
             m.view(-1).index_add_(0, (l + offset).view(-1), (pns_a * (u.float() - b)).view(-1))  # m_l = m_l + p(s_t+n, a*)(u - b)
             m.view(-1).index_add_(0, (u + offset).view(-1), (pns_a * (b - l.float())).view(-1))  # m_u = m_u + p(s_t+n, a*)(b - l)
@@ -159,8 +160,8 @@ class RainbowAgent(DQNTrainAgent):
         with torch.no_grad():
             return (self.online_net(state) * self.support).sum(2).max(1)[0].item()
 
-    def train(self):
+    def set_train(self):
         self.online_net.train()
 
-    def eval(self):
+    def set_eval(self):
         self.online_net.eval()
