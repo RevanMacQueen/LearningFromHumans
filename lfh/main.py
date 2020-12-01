@@ -14,7 +14,6 @@ from lfh.utils.train import init_atari_model
 from lfh.utils.logger import setup_logger
 from lfh.environment.atari_wrappers import make_env
 import torch.multiprocessing as mp
-# from tensorboardX import SummaryWriter
 from lfh.replay.experience import ExperienceReplay, ExperienceSource, ZPDExperienceReplay,UnsequencedExperienceReplay
 from lfh.optimizer import Optimizer
 from lfh.agent.dqn import DQNTrainAgent
@@ -32,8 +31,6 @@ def get_true_rew(monitor_dir):
 
 
 def main(params):
-
-    return 
     # Remap the gpu devices if using gpu
     if cuda_config(gpu=params.params["gpu"]["enabled"],
                    gpu_id=params.params["gpu"]["id"]):
@@ -179,7 +176,6 @@ def main(params):
                        file_name="snapshots_summary")
             break
         
-        
         if len(replay_memory) < params["replay"]['initial']: # to make sure there are enough steps in the replay buffer
             continue
 
@@ -188,7 +184,7 @@ def main(params):
         agent.train(steps=steps)
         
     logger.info("Training complete!")
-    np.save("returns", _play_rewards)
+    np.save("%s/returns" % params["log"]["dir"], _play_rewards)
 
     
 if __name__ == '__main__':

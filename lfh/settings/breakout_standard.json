@@ -3,12 +3,12 @@
     "id": 0
   },
   "env": {
-    "max_num_steps": 2e6,
+    "max_num_steps": 100000,
     "name": "BreakoutNoFrameskip-v4"
   },
   "log": {
     "log_level": "debug",
     "snapshot_per_step": 50000,
-    "root" : "demonstrations/"
+    "root" : "results/"
   }
 }

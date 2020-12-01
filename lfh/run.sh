@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --account=def-jrwright
-#SBATCH --nodes=1
-#SBATCH --cpus-per-task=32
-#SBATCH --time=10:00:00
-#SBATCH --mem-per-cpu=5G 
-#SBATCH --gres=gpu:1
+#SBATCH --array=1-4
+#SBATCH --time=00:00:05
+#SBATCH --mem=5G 
+#SBATCH --gres=gpu:1 
+#SBATCH --output=slurm/%x-%j.out
 
-parallel --joblog log.log -j $SLURM_CPUS_PER_TASK < ./experiments.txt
+eval $(head -n $SLURM_ARRAY_TASK_ID gpu_experiments.txt | tail -n 1)

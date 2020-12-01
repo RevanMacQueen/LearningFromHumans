@@ -107,10 +107,6 @@ class ExperienceReplay(object):
         assert _episode_num in self._episode_lookup
         assert self._episode_lookup[_episode_num] >= self._first_active_idx
 
-
-
-
-
         return self._convert_episode_idx(_episode_num).sample_transition(
             idx=_frame_num, frame_stack=self._frame_stack,
             num_steps=num_steps, gamma=self._gamma, force=force)
@@ -465,7 +461,6 @@ class ZPDExperienceReplay(object):
 
         for trajectory in demonstrations:
             self.dem_replay.add_episode(trajectory)
-        assert False
 
         # sample from demonstrations
         dem_samples = self.dem_replay.sample(batch_size=dem_batch_size, num_steps=num_steps, no_stack=True)
