@@ -21,13 +21,13 @@ from lfh.agent.rainbow import RainbowAgent, replace_with_rbw_cfg
 from lfh.environment.setup import Environment
 # from lfh.teacher.teacher_centers import MultiTeacherTeachingCenter
 # from lfh.utils.debug import generate_debug_msg
+from lfh.environment import monitor
 from lfh.policy import GreedyEpsilonPolicy
 import cProfile
 from pprint import pformat
 import numpy as np
-from lfh.processes import play, test
+from lfh.utils.test import test
 # from lfh.utils.heuristics import perform_bad_exit_early
-# from lfh.environment import monitor
 from pathlib import Path
 # from lfh.envs.atari import make_env
 
@@ -172,12 +172,14 @@ def main(params):
 
     # Initialize environment 
     train_env = Environment(env_params=params["env"], log_params=params["log"],
-                            train=True, logger=logger, seed=params["seed"],)
+                            train=True, logger=logger, seed=params["seed"])
+
 
     exp_source = ExperienceSource(env=train_env, agent=agent,
-                                  episode_per_epi=params["log"]["episode_per_epi"], max_episodes=10000)
+                                  episode_per_epi=params["log"]["episode_per_epi"], max_steps=params["env"]["max_num_steps"])
     exp_source_iter = iter(exp_source)
     # exp_queue.put(None)
+    agent.set_train()
 
     while not _end:
         for _ in range(params["train"]['train_freq_per_step']): # for number of training iter per step
@@ -200,12 +202,15 @@ def main(params):
    
             replay_memory.add_one_transition(exp) # add transition to ERB
 
+        if hasattr(agent, 'reset_noise'):
+            agent.reset_noise()
+
         # Update time
         # Exit early, ignore training, or finish training.
         # if perform_bad_exit_early(params, steps, _play_rewards):
         #     break
         # if len(replay_memory) < params["replay"]['initial']: # to make sure there are enough steps in the replay buffer
-        if replay_memory.total_transitions < params["replay"]['initial']:  # to make sure there are enough steps in the replay buffer
+        if steps < params["replay"]['initial']:  # to make sure there are enough steps in the replay buffer
                 continue
 
         if _end:
@@ -229,20 +234,27 @@ def main(params):
         if steps % params["log"]['snapshot_per_step'] < \
                 params["train"]['train_freq_per_step'] and \
                 steps > params['log']['snapshot_min_step']:
-            rew_list = get_true_rew(params["log"]["dir"])
-            current_true_rew = np.mean(rew_list[-avg_w:])
-            current_clip_rew = np.mean(_play_rewards[-avg_w:])
-            agent.save_model(snapshot_number)
-            snapshots_summary[snapshot_number] = {
-                "clip_rew_life": current_clip_rew,
-                "true_rew_epis": current_true_rew,
-                "num_finished_epis": len(rew_list),
-                "steps": steps,
-            }
-            snapshot_number += 1
-            write_dict(dict_object=snapshots_summary,
-                       dir_path=params["log"]["dir_snapshots"],
-                       file_name="snapshots_summary")
+            # TODO: Eval here.
+
+            total_rewards = test(agent, params["env"], params["log"], logger, steps, params["eval"]["eval_eps"])
+            avg_rewards = sum(total_rewards) / len(total_rewards)
+            print(f"Eval finished after step {steps}. Avg reward over 10 eval episodes: {avg_rewards}")
+            agent.set_train()
+
+            # rew_list = get_true_rew(params["log"]["dir"])
+            # current_true_rew = np.mean(rew_list[-avg_w:])
+            # current_clip_rew = np.mean(_play_rewards[-avg_w:])
+            # agent.save_model(snapshot_number)
+            # snapshots_summary[snapshot_number] = {
+            #     "clip_rew_life": current_clip_rew,
+            #     "true_rew_epis": current_true_rew,
+            #     "num_finished_epis": len(rew_list),
+            #     "steps": steps,
+            # }
+            # snapshot_number += 1
+            # write_dict(dict_object=snapshots_summary,
+            #            dir_path=params["log"]["dir_snapshots"],
+            #            file_name="snapshots_summary")
         
     logger.info("Training complete!")
 

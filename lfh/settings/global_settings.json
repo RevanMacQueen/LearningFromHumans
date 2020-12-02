@@ -22,6 +22,9 @@
     "gamma": 0.99,
     "batch_size": 32
   },
+  "eval": {
+    "eval_eps": 10
+  },
   "replay": {
     "size": 250000,
     "initial": 50000

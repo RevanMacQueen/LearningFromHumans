@@ -17,5 +17,7 @@
   "target_update": 8000,
   "reward_clip": 1,
   "batch_size": 32,
-  "norm_clip": 10
+  "norm_clip": 10,
+  "snapshot_per_step": 10000,
+  "snapshot_min_step": 9000
 }

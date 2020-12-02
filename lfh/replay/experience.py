@@ -5,6 +5,7 @@ import pickle
 from pathlib import Path
 import numpy as np
 from tqdm import tqdm
+from collections import deque
 
 from lfh.utils.replay import merge_transitions_xp
 from lfh.replay.episode import Episode
@@ -446,7 +447,7 @@ class ExperienceReplay(object):
 
 class ExperienceSource:
 
-    def __init__(self, env, agent, episode_per_epi, max_episodes):
+    def __init__(self, env, agent, episode_per_epi, max_steps, max_episodes=1e6):
         """
         `ExperienceSource` is an iterable that integrates environment and agent.
         In train/test processes, we call the `next` for stepping purposes.
@@ -465,8 +466,10 @@ class ExperienceSource:
         self.mean_reward = None
         self.latest_speed = None
         self.latest_reward = None
+        self.max_steps = max_steps
+        self.pbar = tqdm(total=max_steps)
+        self.env_rew_queue = deque(maxlen=10)
         self.max_episodes = max_episodes
-        self.pbar = tqdm(total=max_episodes)
 
     def __iter__(self):
         """THIS is what calls `finish_episode` with `save_tag`.
@@ -476,6 +479,7 @@ class ExperienceSource:
             _steps = self.env.env_steps
             action = self.agent(_obs, self.env.total_steps)
             self.env.step(action)  # ENVIRONMENT STEPPING!!!
+            self.pbar.update(1)
             _next_obs = np.expand_dims(self.env.env_obs[-1], 0)
             if _steps == 0:
                 # new episodes, need `state`
@@ -491,7 +495,10 @@ class ExperienceSource:
                                     action=action, reward=self.env.env_rew,
                                     done=self.env.env_done)
 
-            yield transition
+            if _steps > self.max_steps:
+                yield None
+            else:
+                yield transition
             # ------------------------------------------------------------------
             # If env (either train or test) has an episode which just finished,
             # call this to formally finish and potentially save the trajectory.
@@ -504,17 +511,20 @@ class ExperienceSource:
             # this is called, we start here to check for if we lost a life.
             # ------------------------------------------------------------------
             if self.env.env_done:
-                self.pbar.update(1)
                 if self.episode_per_epi:
                     save_tag = False #self.env.get_num_lives() % self.episode_per_epi == 0 #Revan: I changed this to never save
                 else:
                     save_tag = False
                 self.latest_reward = self.env.epi_rew
+                self.env_rew_queue.append(self.latest_reward)
+
                 self.env.finish_episode(
                     save=save_tag, gif=False,
                     epsilon=self.agent.get_policy_epsilon(self.env.total_steps))
                 self.latest_speed = self.env.speed
                 self.mean_reward = self.env.mean_rew
+                self.pbar.set_description(f"Episode: {self.env.get_num_episodes()}, "
+                                          f"Avg Reward (last 10 eps): {sum(self.env_rew_queue) / len(self.env_rew_queue)}")
 
                 if self.env.get_num_episodes() > self.max_episodes: # stopping condition
                     yield None

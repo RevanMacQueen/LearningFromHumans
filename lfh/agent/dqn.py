@@ -391,3 +391,9 @@ class DQNTrainAgent(DQNAgent):
             "Old weights: {1} \nNew weights: {2} \nCosts (0-1): {3}".format(
                 _num_transitions, _old_weight, self._teacher.teacher_weights,_scores))
         self._teacher_samples = {}
+
+    def set_train(self):
+        self._net.train()
+
+    def set_eval(self):
+        self._net.eval()

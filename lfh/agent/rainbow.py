@@ -26,6 +26,14 @@ def replace_with_rbw_cfg(params: Configurations):
     params.params["env"]["frame_stack"] = params.rbw_config["history_length"]
     params.params["train"]["gamma"] = params.rbw_config["discount"]
     params.params["train"]["target_sync_per_step"] = params.rbw_config["target_update"]
+    params.params["log"]["snapshot_per_step"] = params.rbw_config["snapshot_per_step"]
+    params.params["log"]["snapshot_min_step"] = params.rbw_config["snapshot_min_step"]
+
+    # we remove epsilon here.
+    params.params["epsilon"]["start"] = 0.
+    params.params["epsilon"]["mid"] = 0.
+    params.params["epsilon"]["end"] = 0.
+
     return params.params
 
 
@@ -102,6 +110,7 @@ class RainbowAgent(DQNTrainAgent):
             gpu_id=self._gpu_params["id"],
             gpu_async=self._gpu_params["async"],
             requires_grad=False)
+
         weights = self.get_weights(states, actions, transitions.weight)
 
         nonterminals = 1 - dones
@@ -143,6 +152,16 @@ class RainbowAgent(DQNTrainAgent):
             self._add_new_loss(loss[learner_bs:], "bellman_from_teacher")
 
         return loss, weights
+
+    def opt_step(self, steps, loss, weights):
+
+        opt = self._opt.get_opt(steps)
+        opt.zero_grad()
+        loss.mean().backward()
+
+        if self._opt.clipping != 0:
+            torch.nn.utils.clip_grad_norm_(self._net.parameters(), self._opt.clipping)
+        opt.step()
 
     def sync_target(self, steps):
         self.target_net.load_state_dict(self.online_net.state_dict())
