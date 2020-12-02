@@ -211,5 +211,6 @@ def load_demonstrations(root, plot = False):
 
                         episode_ctr += 1 #increment index
 
-
+    # plt.hist(rewards, bins=list(range(0, int(np.max(rewards)))))
+    # plt.show()
     return rewards, demonstrations 
