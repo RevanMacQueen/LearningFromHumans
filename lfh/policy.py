@@ -1,6 +1,8 @@
 import numpy as np
 from lfh.utils.schedules import PiecewiseSchedule
+from lfh.utils.math import random_argmax
 import logging
+
 
 
 class GreedyEpsilonPolicy(object):
@@ -22,7 +24,7 @@ class GreedyEpsilonPolicy(object):
             (params["frames_mid"], params["mid"]),
             (params['frames_end'], params["end"])
         ], outside_value=params["end"])
-        self.selector = lambda x: x.argmax()
+       
         logger = logging.getLogger("greedy-eps")
         logger.debug("Just defined policy.")
         logger.debug("  params[start]: {}".format(params["start"]))
@@ -32,9 +34,8 @@ class GreedyEpsilonPolicy(object):
     def __call__(self, qs, steps=None):
         assert isinstance(qs, np.ndarray)
         if steps and np.random.uniform() <= self.get_epsilon(steps):
-            
             return np.random.randint(0, self.num_actions)
-        actions = self.selector(qs)
+        actions = random_argmax(qs)
         return actions
 
     def get_epsilon(self, steps):

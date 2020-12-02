@@ -16,3 +16,7 @@ def relative_perplexity(x):
 
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
+
+
+def random_argmax(a):
+    return np.random.choice(np.flatnonzero(a == a.max()))

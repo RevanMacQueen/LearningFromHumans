@@ -377,7 +377,9 @@ class Demonstrations(object):
         :param r the average reward of the agent over past 100 episodes
         """
 
-        ind_match = np.argmin(np.abs(self.returns - r))
+        dists = np.abs(self.returns - r)
+        ind_match = np.random.choice( np.flatnonzero(dists == dists.min()))
+
         ind_center = ind_match + self.offset
         # ensure we are indexing a non-negative index
         ind_center = max(0, ind_center) 
@@ -552,7 +554,7 @@ class UnsequencedExperienceReplay(object):
 
 
 class ExperienceSource:
-    def __init__(self, env, agent, episode_per_epi):
+    def __init__(self, env, agent, episode_per_epi, test=False):
         """
         `ExperienceSource` is an iterable that integrates environment and agent.
         In train/test processes, we call the `next` for stepping purposes.
@@ -571,6 +573,7 @@ class ExperienceSource:
         self.mean_reward = None
         self.latest_speed = None
         self.latest_reward = None
+        self.test = test
 
         
 
@@ -580,7 +583,7 @@ class ExperienceSource:
         while True:
             _obs = self.env.env_obs
             _steps = self.env.env_steps
-            action = self.agent(_obs, self.env.total_steps)
+            action = self.agent(_obs, self.env.total_steps, greedy=self.test)
             self.env.step(action)  # ENVIRONMENT STEPPING!!!
             _next_obs = np.expand_dims(self.env.env_obs[-1], 0)
             if _steps == 0:
@@ -610,15 +613,13 @@ class ExperienceSource:
             # this is called, we start here to check for if we lost a life.
             # ------------------------------------------------------------------
             if self.env.env_done:
-             
                 if self.episode_per_epi:
                     save_tag = False #self.env.get_num_lives() % self.episode_per_epi == 0 #Revan: I changed this to never save
                 else:
                     save_tag = False
                 self.latest_reward = self.env.epi_rew
                 self.env.finish_episode(
-                    save=save_tag, gif=False,
-                    epsilon=self.agent.get_policy_epsilon(self.env.total_steps))
+                    save=save_tag, gif=False)
                 self.latest_speed = self.env.speed
                 self.mean_reward = self.env.mean_rew
 

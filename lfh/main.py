@@ -5,6 +5,7 @@ Main file for training agent with demonstrations
 import os
 import argparse
 import logging
+import copy
 import time
 from tqdm import tqdm
 from lfh.utils.config import Configurations
@@ -31,6 +32,7 @@ def get_true_rew(monitor_dir):
 
 
 def main(params):
+
     # Remap the gpu devices if using gpu
     if cuda_config(gpu=params.params["gpu"]["enabled"],
                    gpu_id=params.params["gpu"]["id"]):
@@ -64,6 +66,9 @@ def main(params):
     # Output all configurations
     params = params.dump()
     set_all_seeds(seed=params["seed"], gpu=params["gpu"]["enabled"])
+
+
+    params["replay"]['initial'] = 10000
 
     # Initialize dqn Q-network
     model = init_atari_model(
@@ -143,7 +148,7 @@ def main(params):
 
     # Initialize environment 
     train_env = Environment(env_params=params["env"], log_params=params["log"],
-                            train=True, logger=logger, seed=params["seed"],)
+                            train=True, logger=logger, seed=params["seed"])
 
     exp_source = ExperienceSource(env=train_env, agent=agent,
                                   episode_per_epi=params["log"]["episode_per_epi"])
@@ -156,6 +161,7 @@ def main(params):
             if steps >= max_steps:
                 _end = True
                 break
+
             steps += 1
             pbar.update(1)
             exp = next(exp_source_iter)    
@@ -183,9 +189,29 @@ def main(params):
         # Called at every multiple of four, so steps = {0, 4, 8, 12, ...}.
         agent.train(steps=steps)
         
-    logger.info("Training complete!")
-    np.save("%s/returns" % params["log"]["dir"], _play_rewards)
+        # every 10000 steps, play 10 games for testing
+        if steps % 10000 == 0:
 
+            # set up temporary experience source, where agent acts greedy
+           
+            eval_env = Environment(env_params=params["env"], log_params=params["log"],
+                            train=True, logger=logger, seed=params["seed"])
+    
+            eval_exp_source = ExperienceSource(env=eval_env, agent=agent, episode_per_epi=0, test=True)
+            eval_exp_source_iter = iter(eval_exp_source)
+
+            for test_game_idx in range(0, 10): # for each test iteration
+                while True: 
+                    eval_exp = next(eval_exp_source_iter)    
+                    rewards_, mean_rewards_, speed_ = eval_exp_source.pop_latest()
+                    if rewards_ is not None: # only happens at end of an episode
+                        _test_rewards.append(rewards_)
+                        break
+
+
+    logger.info("Training complete!")
+    np.save("%s/play_returns" % params["log"]["dir"], _play_rewards)
+    np.save("%s/test_returns" % params["log"]["dir"], _test_rewards)
     
 if __name__ == '__main__':
     mp = mp.get_context('spawn')
@@ -209,5 +235,6 @@ if __name__ == '__main__':
     _params = Configurations(params, note="")
 
     # Include log directory names in the param
-
     main(_params)
+
+

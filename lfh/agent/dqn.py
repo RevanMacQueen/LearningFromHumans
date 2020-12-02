@@ -9,7 +9,7 @@ import torch
 from lfh.utils.io import write_dict
 from lfh.utils.data_structures import SMAQueue
 #from lfh.teacher.snapshots_teacher import SelfReviewer
-from lfh.utils.math import sigmoid
+from lfh.utils.math import sigmoid, random_argmax
 from lfh.replay.transition import Transition
 
 
@@ -44,7 +44,7 @@ class DQNAgent(Agent):
         assert qs.shape[0] == 1
         return qs.detach().cpu().numpy()
 
-    def __call__(self, states, steps=None):
+    def __call__(self, states, steps=None, greedy=False):
         """
         Given the states as the input, it will run through an epsilon-greedy
         policy based on the Q values returned from the neural network.
@@ -54,7 +54,11 @@ class DQNAgent(Agent):
         :return: action picked by policy
         """
         obs = self._states_preprocessor(np.expand_dims(states, 0))
-        return self._policy(self._qs_postprocessor(self._net(obs)), steps=steps)
+        if greedy:
+            return random_argmax(self._qs_postprocessor(self._net(obs)))
+        else:
+           
+            return self._policy(self._qs_postprocessor(self._net(obs)), steps=steps)
 
 
 class DQNTrainAgent(DQNAgent):

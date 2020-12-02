@@ -4,14 +4,14 @@ Generates script for running many experiemnts
 from lfh.utils.config import Configurations
 import numpy as np
 import argparse
+
 ### Experimental Parameters #
 np.random.seed(569)
 SEEDS = np.random.randint(0, 10000, size=3)
 AGENTS = ["uniform_zpd", "DDQN", "unseq_DDQN"]
-OFFSETS = [-(2**i) for i in range(0, 2)] + [0] + [2**i for i in range(0, 3)]
-RADII = [0] + [2**i for i in range(0,5)]
-MIX_RATIOS = [1/16, 1/4]   #[1/(2**i) for i in range(1,5)]
-
+OFFSETS = [-2, 0, 2, 4]
+RADII = [0, 2, 4, 16]
+MIX_RATIOS = [1/16, 1/4]   
 
 ###############################
 
@@ -33,7 +33,6 @@ def get_args():
 
 
 def main(args):
-    run_args = {}
     bash_file_commands = []
 
     for seed in SEEDS:
@@ -42,6 +41,7 @@ def main(args):
                 for offset in OFFSETS:
                     for radius in RADII:
                         for mix_ratio in MIX_RATIOS:
+                                run_args = {}
                                 run_args["agent"] = agent
                                 run_args["offset"] = offset
                                 run_args["radius"] = radius
@@ -54,7 +54,7 @@ def main(args):
                                     bash_file_commands.append(to_command(run_args))
             else:
                 for mix_ratio in MIX_RATIOS:
-
+                    run_args = {}
                     run_args["mix-ratio"] = mix_ratio
                     run_args["agent"] = agent
                     run_args["seed"] = seed
