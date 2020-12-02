@@ -66,9 +66,9 @@ class Configurations:
             note = "_" + note.replace(" ", "_").lower()
 
         # D: extra stuff for more scalable logging, also check if teaching.
-        date = '{}'.format(datetime.datetime.now().strftime('%Y-%m-%d-%H-%M'))
-        last = "{}{}_{}_s{}".format(self.params["exp"], note, date,
-                                    self.params["seed"])
+        date = '{}'.format(datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S'))
+        last = "{}{}_{}_s{}_{}".format(self.params["exp"], note, date,
+                                    self.params["seed"], random.randint(10, 100000))
 
         
         self.params["log"]["dir"] = str(Path( self.params["log"]["root"])/last)
