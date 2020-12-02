@@ -20,4 +20,4 @@ def extract(filename):
         for i in zip_file.namelist():
             zip_file.extract(i, dirname)
 
-extract("BreakoutDemonstrations-20201202T063154Z-001.zip")
+extract("../BreakoutDemonstrations-20201202T063154Z-001.zip")
