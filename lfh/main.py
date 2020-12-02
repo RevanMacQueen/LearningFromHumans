@@ -67,9 +67,6 @@ def main(params):
     params = params.dump()
     set_all_seeds(seed=params["seed"], gpu=params["gpu"]["enabled"])
 
-
-    params["replay"]['initial'] = 10000
-
     # Initialize dqn Q-network
     model = init_atari_model(
         obs_space=params["env"]["obs_space"],
@@ -223,7 +220,7 @@ if __name__ == '__main__':
     parser.add_argument("--exp-name", type=str, default='settings',
                         help='directory from which to load experiment settings')
     parser.add_argument("--profile", action='store_true', help='whether to run the profiler')
-    parser.add_argument("--demonstrations-dir", type=str, default='../Demonstrations/BreakoutDemonstrations/', help='directory containing demonstrations')
+    parser.add_argument("--demonstrations-dir", type=str, default='BreakoutDemonstrations/', help='directory containing demonstrations')
 
     parser.add_argument("--agent", type=str, default="uniform_zpd", help="what agent to run 1. uniform_zpd 2. DDQN 3. unseq_DDQN")
     parser.add_argument("--offset", type=int, default=1, help="offset for zpd window")
