@@ -186,11 +186,11 @@ def main(params):
         # Called at every multiple of four, so steps = {0, 4, 8, 12, ...}.
         agent.train(steps=steps)
         
-        # every 10000 steps, play 10 games for testing
-        if steps % 10000 == 0:
+        # every 50000 steps, play 10 games for testing
+        if steps % 50000 == 0:
 
             # set up temporary experience source, where agent acts greedy
-           
+            curr_step_results = []
             eval_env = Environment(env_params=params["env"], log_params=params["log"],
                             train=True, logger=logger, seed=params["seed"])
     
@@ -202,8 +202,11 @@ def main(params):
                     eval_exp = next(eval_exp_source_iter)    
                     rewards_, mean_rewards_, speed_ = eval_exp_source.pop_latest()
                     if rewards_ is not None: # only happens at end of an episode
-                        _test_rewards.append(rewards_)
+                        curr_step_results.append(rewards_)
                         break
+
+            _test_rewards.append(curr_step_results)
+            pbar.set_description(f"Test reward at step {steps} (10 eps): {sum(curr_step_results) / len(curr_step_results)}")
 
 
     logger.info("Training complete!")
