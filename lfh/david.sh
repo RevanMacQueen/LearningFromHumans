@@ -4,7 +4,7 @@
 #SBATCH --time=01-00:00
 #SBATCH --mem=16G
 #SBATCH --gres=gpu:1 
-#SBATCH --output=slurmn_ew/%x-%j.out
+#SBATCH --output=slurm2/%x-%j.out
 #SBATCH --mail-user=revan@ualberta.ca
 #SBATCH --mail-type=ALL
 
