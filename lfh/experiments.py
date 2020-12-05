@@ -8,10 +8,10 @@ import argparse
 ### Experimental Parameters #
 np.random.seed(569)
 SEEDS = np.random.randint(0, 10000, size=3)
-AGENTS = ["uniform_zpd", "DDQN", "unseq_DDQN"]
+AGENTS = ["uniform_zpd", "unseq_DDQN"]
 OFFSETS = [-2, 0, 2, 4]
 RADII = [0, 2, 4, 16]
-MIX_RATIOS = [1/16, 1/4]   
+MIX_RATIOS = [1/4]
 
 ###############################
 

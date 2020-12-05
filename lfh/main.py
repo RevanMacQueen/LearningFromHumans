@@ -160,7 +160,7 @@ def main(params):
                 break
 
             steps += 1
-            pbar.update(1)
+            
             exp = next(exp_source_iter)    
             rewards, mean_rewards, speed = exp_source.pop_latest()
             
@@ -186,9 +186,9 @@ def main(params):
         # Called at every multiple of four, so steps = {0, 4, 8, 12, ...}.
         agent.train(steps=steps)
         
-        # every 50000 steps, play 10 games for testing
-        if steps % 50000 == 0:
-
+        # every 100000 steps, play 10 games for testing
+        if steps % 100000 == 0:
+            pbar.update(100000)
             # set up temporary experience source, where agent acts greedy
             curr_step_results = []
             eval_env = Environment(env_params=params["env"], log_params=params["log"],
