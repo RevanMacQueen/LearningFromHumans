@@ -161,7 +161,7 @@ def load_results(dir):
 
 
 
-def load_demonstrations(root, plot = False):
+def load_demonstrations(root, return_demonstrations = True):
     '''
     Loads all demonstrations, and saves them into two directories:
      "return_ordered_demononstrations" and "player_ordered_demonstrations". 
@@ -211,6 +211,7 @@ def load_demonstrations(root, plot = False):
 
                         episode_ctr += 1 #increment index
 
-    # plt.hist(rewards, bins=list(range(0, int(np.max(rewards)))))
-    # plt.show()
-    return rewards, demonstrations 
+    if return_demonstrations:
+        return rewards, demonstrations
+    else:
+        return rewards

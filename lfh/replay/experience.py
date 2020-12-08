@@ -384,6 +384,8 @@ class Demonstrations(object):
         # ensure we are indexing a non-negative index
         ind_center = max(0, ind_center) 
         
+        print("R: {}".format(r))
+        print("matched return: {}".format(self.returns[ind_center]))
         start_ind = ind_center - self.radius
         if start_ind < 0:
             shift_amt = abs(start_ind)
@@ -391,6 +393,8 @@ class Demonstrations(object):
             end_ind = ind_center + self.radius + shift_amt
         else:
             end_ind = ind_center + self.radius
+
+        
 
         # +1 is because python slices are end-exclusive
         return self.demonstrations[start_ind:end_ind+1]
