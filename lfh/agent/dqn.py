@@ -148,44 +148,45 @@ class DQNTrainAgent(DQNAgent):
         bs = self._train_params["batch_size"]
         ns = self._train_params["num_steps"]
 
-        if self._teacher is None or self._teacher.total_num_teachers == 0:
-            samples = self._replay.sample(batch_size=bs, num_steps=ns)
-            return samples, bs
-        else:
-            # AH! Let's insert a special case if we've finished matching.
-            # TODO: actually won't work if we have multiple teachers, but just
-            # change the if condition below if we end up doing that.
-            if self._teacher.any_teacher_done():
-                tb = self._teacher.blend_schedule_end.value(self._steps_after_done)
-                self._steps_after_done += 1
-            else:
-                tb = self._teacher.blend_schedule.value(steps)
-            teacher_bs = int(bs * tb)
-            learner_bs = bs - teacher_bs
-
-            # Sample from the teacher's replay.
-            teacher_samples, teacher_id = self._teacher.sample(
-                    batch_size=teacher_bs, num_steps=ns, steps=steps)
-            if teacher_samples is None:
-                teacher_bs = 0
-                learner_bs = bs
-            else:
-                assert isinstance(teacher_samples, Transition)
-                assert len(teacher_samples.action) == teacher_bs
-                # Used to be here but DON'T CALL IT! An absurd amount of compute.
-                #self._add_teacher_samples(teacher_id, teacher_samples)
-
-            # Sample from the learner's replay (same class, different object).
-            learner_samples = self._replay.sample(batch_size=learner_bs, num_steps=ns)
-            assert isinstance(learner_samples, Transition)
-            assert len(learner_samples.action) == learner_bs
-            self._replay.writer.add_scalar(
-                    tag="teacher_sample_percentage",
-                    scalar_value=teacher_bs/bs,
-                    global_step=steps)
-            samples = merge_transitions(learner=learner_samples,
-                                        teacher=teacher_samples)
-            return samples, learner_bs
+        # if self._teacher is None or self._teacher.total_num_teachers == 0:
+        samples = self._replay.sample(batch_size=bs, num_steps=ns)
+        learner_bs = bs - self._replay.current_dem_batch_size if hasattr(self._replay, 'current_dem_batch_size') else bs
+        return samples, learner_bs
+        # else:
+        #     # AH! Let's insert a special case if we've finished matching.
+        #     # TODO: actually won't work if we have multiple teachers, but just
+        #     # change the if condition below if we end up doing that.
+        #     if self._teacher.any_teacher_done():
+        #         tb = self._teacher.blend_schedule_end.value(self._steps_after_done)
+        #         self._steps_after_done += 1
+        #     else:
+        #         tb = self._teacher.blend_schedule.value(steps)
+        #     teacher_bs = int(bs * tb)
+        #     learner_bs = bs - teacher_bs
+        #
+        #     # Sample from the teacher's replay.
+        #     teacher_samples, teacher_id = self._teacher.sample(
+        #             batch_size=teacher_bs, num_steps=ns, steps=steps)
+        #     if teacher_samples is None:
+        #         teacher_bs = 0
+        #         learner_bs = bs
+        #     else:
+        #         assert isinstance(teacher_samples, Transition)
+        #         assert len(teacher_samples.action) == teacher_bs
+        #         # Used to be here but DON'T CALL IT! An absurd amount of compute.
+        #         #self._add_teacher_samples(teacher_id, teacher_samples)
+        #
+        #     # Sample from the learner's replay (same class, different object).
+        #     learner_samples = self._replay.sample(batch_size=learner_bs, num_steps=ns)
+        #     assert isinstance(learner_samples, Transition)
+        #     assert len(learner_samples.action) == learner_bs
+        #     self._replay.writer.add_scalar(
+        #             tag="teacher_sample_percentage",
+        #             scalar_value=teacher_bs/bs,
+        #             global_step=steps)
+        #     samples = merge_transitions(learner=learner_samples,
+        #                                 teacher=teacher_samples)
+        #     return samples, learner_bs
 
     def get_weights(self, states, actions, weights):
         """D: with my pong snapshots code, we're in the second if case.
@@ -283,20 +284,20 @@ class DQNTrainAgent(DQNAgent):
             self._add_new_loss(loss[learner_bs:], "bellman_from_teacher")
 
         # # (4) Teacher large-margin (i.e., supervised) loss, including lambda.
-        # if self._teacher and self._teacher.supervise_loss and apply_extra_losses:
-        #     _supervise_loss = lfh.utils.train.supervise_loss(
-        #             qs=qs,
-        #             qs_full=qs_full,
-        #             actions=actions,
-        #             margin=self._teacher.supervise_margin,
-        #             gpu=self._gpu_params["enabled"],
-        #             gpu_id=self._gpu_params["id"],
-        #             gpu_async=self._gpu_params["async"],
-        #             loss_lambda=self._teacher.supervise_loss_lambda,
-        #             loss_type=self._teacher.supervise_type,
-        #             learner_bs=learner_bs)
-        #     self._add_new_loss(_supervise_loss[learner_bs:], "supervise_loss")
-        #     loss += _supervise_loss
+        if learner_bs < states.shape[0] and apply_extra_losses:
+            _supervise_loss = lfh.utils.train.supervise_loss(
+                    qs=qs,
+                    qs_full=qs_full,
+                    actions=actions,
+                    margin=0.8,
+                    gpu=self._gpu_params["enabled"],
+                    gpu_id=self._gpu_params["id"],
+                    gpu_async=self._gpu_params["async"],
+                    loss_lambda=0.100,
+                    loss_type="margin",
+                    dem_bs=states.shape[0] - learner_bs)
+            self._add_new_loss(_supervise_loss[:states.shape[0] - learner_bs], "supervise_loss")
+            loss += _supervise_loss
 
         return loss, weights
 

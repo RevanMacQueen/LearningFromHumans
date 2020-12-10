@@ -12,7 +12,6 @@ importlib-metadata==3.1.0
 jsonmerge==1.7.0
 jsonschema==3.2.0
 kiwisolver==1.2.0
--e git+https://github.com/RevanMacQueen/LearningFromHumans.git@47e357b979c6cda4b9b960affd5ed74208723024#egg=LFH
 matplotlib==3.3.2
 numpy==1.19.2
 opencv-python==3.4.4.19

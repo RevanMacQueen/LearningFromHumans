@@ -150,7 +150,7 @@ def cross_entropy_loss(qs_full, actions):
 
 
 def supervise_loss(qs, qs_full, actions, margin, gpu, gpu_id, gpu_async,
-                   loss_lambda, loss_type, learner_bs=0):
+                   loss_lambda, loss_type, dem_bs=0):
     """Called from `agent/dqn.py`, for computing 'large margin' loss from DQfD.
     
     We multiply loss_lambda here; keep in mind when plotting, though DeepMind
@@ -173,7 +173,7 @@ def supervise_loss(qs, qs_full, actions, margin, gpu, gpu_id, gpu_async,
         _loss = margin_loss(qs=qs, qs_full=qs_full, actions=actions,
                             margin=margin, gpu=gpu, gpu_id=gpu_id,
                             gpu_async=gpu_async)
-    _loss.data[0: learner_bs] *= 0.0
+    _loss.data[dem_bs:] *= 0.0
     return _loss * loss_lambda
 
 

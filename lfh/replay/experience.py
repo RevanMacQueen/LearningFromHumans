@@ -437,6 +437,8 @@ class ZPDExperienceReplay(object):
         # coefficient for linear anneal once learner has surpassed demonstrations
         self.anneal_coeff = 0.95
 
+        self.current_dem_batch_size = 0
+
 
     def __len__(self):
         return len(self.exp_replay)
@@ -451,6 +453,8 @@ class ZPDExperienceReplay(object):
             self.anneal_coeff *= self.anneal_coeff
         else:
             dem_batch_size = int(batch_size * self.mix_ratio)
+
+        self.current_dem_batch_size = dem_batch_size
 
         # remainder of mini-batch will be learners experience 
         exp_batch_size = batch_size - dem_batch_size    
