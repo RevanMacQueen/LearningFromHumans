@@ -5,6 +5,7 @@ import pickle
 from pathlib import Path
 import numpy as np
 from tqdm import tqdm
+from math import ceil
 
 from lfh.utils.replay import merge_transitions_xp
 from lfh.replay.episode import Episode
@@ -352,22 +353,37 @@ class ExperienceReplay(object):
             pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
 
 
-
 class Demonstrations(object):
     def __init__(self, returns, demonstrations, offset, radius):
         """
         Helper class for ZPDExperienceReplay. Holds demonstrations and implements 
         f_select function
-        """
+    """
 
-        self.returns, self.demonstrations = zip(*sorted(zip(returns, demonstrations),  key=lambda x: x[0]))
-        self.returns  = np.array(self.returns)
+        self.returns, demonstrations = zip(*sorted(zip(returns, demonstrations),  key=lambda x: x[0])) # sort the demonstrations and rewards
+        self.demonstrations = self.unflatten(returns, demonstrations) # demonstrations is a 2d list, first index orders by return
+
+        self.returns  = np.unique(self.returns)
         self.offset = offset
         self.radius = radius
 
         # maximum reward amongst all demonstrations
         self.max_reward  = self.returns[-1]
         assert self.radius >= 0
+
+
+    def unflatten(self, returns, demonstrations):
+        new_list = []
+
+        for i in np.unique(returns):
+            idxs = np.where(returns==i)[0]
+            new_entry = []
+            for j in idxs:
+                new_entry.append(demonstrations[j])
+
+            new_list.append(new_entry)
+
+        return new_list
 
 
     def select(self, r):
@@ -383,9 +399,7 @@ class Demonstrations(object):
         ind_center = ind_match + self.offset
         # ensure we are indexing a non-negative index
         ind_center = max(0, ind_center) 
-        
-        print("R: {}".format(r))
-        print("matched return: {}".format(self.returns[ind_center]))
+
         start_ind = ind_center - self.radius
         if start_ind < 0:
             shift_amt = abs(start_ind)
@@ -394,10 +408,14 @@ class Demonstrations(object):
         else:
             end_ind = ind_center + self.radius
 
-        
+        if end_ind > len(self.returns)-1: # if end_ind index beyond end of demonstrations list
+            end_ind =  len(self.returns)-1
 
-        # +1 is because python slices are end-exclusive
-        return self.demonstrations[start_ind:end_ind+1]
+        selected_demonstrations = []
+        for i in range(start_ind, end_ind+1): # +1 is because python range is end-exclusive
+            selected_demonstrations += self.demonstrations[i]
+        
+        return selected_demonstrations
 
 
     def get_all_demonstartions(self):
@@ -463,7 +481,12 @@ class ZPDExperienceReplay(object):
         demonstrations = self.demonstrations.select(self.avg_r)
 
         # make sure we have enough transitions in the buffer
-        assert sum([trajectory.length for trajectory in demonstrations])  >= dem_batch_size
+        num_trajectories = sum([trajectory.length for trajectory in demonstrations])
+        if num_trajectories < dem_batch_size:
+            # naive solution, just copying those trajectories until we have enough
+            demonstrations = ceil(dem_batch_size/num_trajectories)*demonstrations
+
+        assert sum([trajectory.length for trajectory in demonstrations]) >= dem_batch_size
 
         for trajectory in demonstrations:
             self.dem_replay.add_episode(trajectory)
