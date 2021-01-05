@@ -9,8 +9,8 @@ import argparse
 np.random.seed(569)
 SEEDS = np.random.randint(0, 10000, size=3)
 AGENTS = ["uniform_zpd", "unseq_DDQN"]
-OFFSETS = [ -64, -32, -8, -4, 8, 32, 64]
-RADII = [32, 64, 128]
+OFFSETS = [ -2, -1, 0, 1, 2, 4, 8]
+RADII = [0, 1, 2, 4,8]
 MIX_RATIOS = [1/4]
 
 ###############################

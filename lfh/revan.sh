@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --account=def-jrwright
-#SBATCH --array=1-66
+#SBATCH --array=1-108
 #SBATCH --time=02-12:00
 #SBATCH --mem=16G
 #SBATCH --gres=gpu:1 
